@@ -1,0 +1,10 @@
+//General
+PUERTO = 80
+CORS = *
+
+//BD
+PGHOST = 'localhost'
+PGUSER = 'xxx'
+PGDATABASE = 'futbola'
+PGPASSWORD = 'yyy'
+PGPORT = 5432
