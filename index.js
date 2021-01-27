@@ -36,7 +36,7 @@ if (!config.dev) {
  */
 appExpress.use(session(sess));
 appExpress.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
-appExpress.use("/favicon", express.static(ruta.join(__dirname, "/favicon")));
+appExpress.use("/cdn", express.static(ruta.join(__dirname, "/cdn")));
 appExpress.use(morgan("combined"));
 /**
  * Servir el root o raiz, solo lo vamos a necesitar como html
