@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <meta content="#ffffff" name="theme-color">
+    <link href="/cdn/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png">
+    <title>Login - Futbola</title>
+    <style>
+        .centrado {
+            width: 80%;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            position: absolute;
+            text-align: center;
+        }
+
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        canvas {
+            background: #eee;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+<div class="centrado">
+    <button id="botonInicia" onclick="preparar()">Clic para iniciar</button>
+</div>
+<canvas height="3" id="myCanvas" width="4"></canvas>
+<script>
+    'use strict'
+
+    function Jugador(dorsal, equipo) {
+        let x = 0;
+        let y = 0;
+        let i = dorsal;
+        let color = equipo ? 'blue' : 'red';
+        this.dibujar = function (ctx) {
+        }
+    }
+
+    function Equipo() {
+        let jugadores = [];
+        for (let i = 1; i < 11; i++) {
+            jugadores.push(new Jugador(i));
+        }
+
+        this.dibujar = function (ctx) {
+            jugadores.forEach(function (jugador) {
+                jugador.dibujar(ctx);
+            })
+        }
+    }
+
+    function Balon() {
+        this.dibujar = function (ctx) {
+
+        }
+    }
+
+    function Juego(ctx) {
+
+        let equipoA = new Equipo();
+        let equipoB = new Equipo();
+        let bola = new Balon();
+
+        let minX = 0;
+        let minY = 0;
+        let maxX = 0;
+        let maxY = 0;
+        let alto = 0;
+        let ancho = 0;
+        let bombaAncho = 0;
+        let bombaAlto = 0;
+        let bombaMinY = 0;
+        let bombaDerMinX = 0;
+        let mitadX;
+        let mitadY;
+        let radioCentro;
+        let radioCompleto;
+        let radioMitad;
+        let radioAngulo;
+        let bombaIzqMinXRadio;
+        let bombaChicaAncho;
+        let bombaChicaAlto;
+        let bombaChicaMinY;
+        let bombaChicaDerMinX;
+        let porteriaMinY;
+        let porteriaMaxY;
+
+        this.inicia = function (ctx) {
+            let bordes = 1 / 100;
+
+            minX = ctx.canvas.width * bordes;
+            minY = ctx.canvas.height * bordes;
+            maxX = ctx.canvas.width - ctx.canvas.width * bordes;
+            maxY = ctx.canvas.height - ctx.canvas.height * bordes;
+
+            alto = maxY - minY;
+            ancho = maxX - minX;
+
+            bombaAncho = ancho / 7;
+            bombaAlto = alto / 2;
+            bombaMinY = minY + alto / 4;
+            bombaDerMinX = maxX - bombaAncho;
+
+            bombaChicaAncho = ancho / 18;
+            bombaChicaAlto = alto / 4;
+            bombaChicaMinY = bombaMinY + alto / 8;
+            bombaChicaDerMinX = maxX - bombaChicaAncho;
+
+            bombaIzqMinXRadio = minX + bombaAncho;
+
+            mitadX = ctx.canvas.width / 2;
+            mitadY = ctx.canvas.height / 2;
+
+            radioCentro = bombaAncho / 3;
+            radioCompleto = Math.PI * 2;
+            radioMitad = Math.PI / 2;
+            radioAngulo = Math.PI;
+
+            porteriaMinY = minY + 4 * alto / 9;
+            porteriaMaxY = alto / 9;
+
+            this.dibujar(ctx);
+        }
+
+        this.dibujar = function (ctx) {
+            //Limpiar
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            //dibujamos el fondo verde
+            ctx.beginPath();
+            ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.fillStyle = "rgba(0, 120, 24, 0.9)";
+            ctx.fill();
+            ctx.closePath();
+
+            //bordes de la cancha
+            ctx.beginPath();
+            ctx.rect(minX, minY, ancho, alto);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+
+            //bomba izquierda y derecha
+            ctx.beginPath();
+            ctx.rect(minX, bombaMinY, bombaAncho, bombaAlto);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.rect(minX, bombaChicaMinY, bombaChicaAncho, bombaChicaAlto);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.arc(bombaIzqMinXRadio, mitadY, radioCentro, -radioMitad, radioMitad);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.rect(bombaDerMinX, bombaMinY, bombaAncho, bombaAlto);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.arc(bombaDerMinX, mitadY, radioCentro, radioMitad, -radioMitad);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.rect(bombaChicaDerMinX, bombaChicaMinY, bombaChicaAncho, bombaChicaAlto);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+
+            //linea de la mitad y circulo
+            ctx.beginPath();
+            ctx.rect(mitadX, minY, mitadX, maxY);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.arc(mitadX, mitadY, radioCentro, 0, radioCompleto);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+
+            //porterias
+            ctx.beginPath();
+            ctx.rect(0, porteriaMinY, minX, porteriaMaxY);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.rect(maxX, porteriaMinY, minX, porteriaMaxY);
+            ctx.strokeStyle = "#FFF";
+            ctx.stroke();
+            ctx.closePath();
+
+            //equipos
+            equipoA.dibujar(ctx);
+            equipoB.dibujar(ctx);
+            bola.dibujar(ctx);
+        }
+
+
+    }
+
+
+    /**
+     *
+     */
+    function preparar() {
+        document.getElementById('botonInicia').remove();
+
+        const ancho = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        const alto = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+        document.getElementById("myCanvas");
+        let canvas = document.getElementById("myCanvas");
+        let ctx = canvas.getContext("2d");
+
+        ctx.canvas.width = ancho;
+        ctx.canvas.height = alto;
+
+        let juego = new Juego();
+        juego.inicia(ctx);
+    }
+
+    /**
+     *
+     */
+    window.onload = function () {
+        setTimeout(preparar, 100);
+    }
+
+
+</script>
+
+</body>
+</html>

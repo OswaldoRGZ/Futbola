@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
     <!-- MATERIAL DESIGN -->
-    <link href="https://code.getmdl.io/1.3.0/material.indigo-red.min.css" rel="stylesheet" />
+    <link href="https://code.getmdl.io/1.3.0/material.indigo-red.min.css" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- GENERAL -->
     <link href="/cdn/apple-icon-57x57.png" rel="apple-touch-icon" sizes="57x57">
@@ -16,7 +16,7 @@
     <link href="/cdn/apple-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
     <link href="/cdn/apple-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
     <link href="/cdn/apple-icon-180x180.png" rel="apple-touch-icon" sizes="180x180">
-    <link href="/cdn/android-icon-192x192.png" rel="icon" sizes="192x192"  type="image/png">
+    <link href="/cdn/android-icon-192x192.png" rel="icon" sizes="192x192" type="image/png">
     <link href="/cdn/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png">
     <link href="/cdn/favicon-96x96.png" rel="icon" sizes="96x96" type="image/png">
     <link href="/cdn/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png">
@@ -24,8 +24,7 @@
     <meta content="#ffffff" name="msapplication-TileColor">
     <meta content="/favicon/ms-icon-144x144.png" name="msapplication-TileImage">
     <meta content="#ffffff" name="theme-color">
-
-    <title>Login</title>
+    <title>Login - Futbola</title>
 
     <!-- Square card -->
     <style>
@@ -50,36 +49,131 @@
             <div class="mdl-card__title mdl-card--expand">
                 <h2 class="mdl-card__title-text">Iniciar Sesión</h2>
             </div>
-            <div class="mdl-card__supporting-text">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                Aenan convallis.
-            </div>
-            <div class="mdl-card__actions mdl-card--border">
-                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
-                    View Updates
-                </a>
-            </div>
+            <form action="login.html" action="#" method="post">
+                <div class="mdl-card__supporting-text">
+                    <!-- Textfield with Floating Label -->
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input autocomplete="current-user" class="mdl-textfield__input" id="login-inputusr" required type="text">
+                        <label class="mdl-textfield__label" for="login-inputusr">Usuario</label>
+                    </div>
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input autocomplete="current-password" class="mdl-textfield__input" id="login-inputclave" required type="password">
+                        <label class="mdl-textfield__label" for="login-inputclave">Clave</label>
+                    </div>
+                </div>
+                <div class="mdl-card__actions mdl-card--border">
+                    <button class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" type="submit">
+                        Entrar
+                    </button>
+                </div>
+            </form>
         </div>
-
 
         <div class="mdl-cell mdl-cell--6-col mdl-card mdl-shadow--2dp">
             <div class="mdl-card__title mdl-card--expand">
                 <h2 class="mdl-card__title-text">Crear Cuenta</h2>
             </div>
-            <div class="mdl-card__supporting-text">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                Aenan convallis.
-            </div>
-            <div class="mdl-card__actions mdl-card--border">
-                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
-                    vamo a ver
-                </a>
-            </div>
+            <form action="#" id="login-formCrear" method="post" onsubmit="return registroNuevoUsuario(this);">
+                <div class="mdl-card__supporting-text">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input class="mdl-textfield__input" id="login-inputnombre" name="Usuario[usuario]" required type="text">
+                        <label class="mdl-textfield__label" for="login-inputnombre">Nombre de Usuario*</label>
+                    </div>
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input class="mdl-textfield__input" id="login-inputcorreo" name="Usuario[email]" required type="email">
+                        <label class="mdl-textfield__label" for="login-inputcorreo">Correo *</label>
+                    </div>
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input autocomplete="new-password" class="mdl-textfield__input" id="login-inputclave1" name="Usuario[clave]" required type="password">
+                        <label class="mdl-textfield__label" for="login-inputclave1">Clave *</label>
+                    </div>
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input class="mdl-textfield__input" id="login-inputclave2" name="Usuario[re-clave]" required type="password">
+                        <label class="mdl-textfield__label" for="login-inputclave2">Repite Clave *</label>
+                    </div>
+                </div>
+                <div class="mdl-card__actions mdl-card--border">
+                    <button class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" type="submit">
+                        Crear cuenta nueva
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-
+<!-- The core Firebase JS SDK is always required and must be listed first -->
+<script src="https://www.gstatic.com/firebasejs/8.2.9/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.9/firebase-analytics.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.9/firebase-auth.js"></script>
+<script>
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    var firebaseConfig = {
+        apiKey: "AIzaSyBiI3Gsk7QsE39DvSZWmHd8oN-jvWh93vY",
+        authDomain: "ligafutbola.firebaseapp.com",
+        projectId: "ligafutbola",
+        storageBucket: "ligafutbola.appspot.com",
+        messagingSenderId: "1009443859803",
+        appId: "1:1009443859803:web:9fa8a2cf039e105c54be7e",
+        measurementId: "G-EHRYKGF37Z"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+</script>
 <!-- MATERIAL DESIGN -->
 <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+<script>
+    /**
+     *
+     */
+    function registroNuevoUsuario(elForm) {
+        //let formData = new FormData(elForm);
+        let clave = document.querySelector("[name='Usuario[clave]']");
+        let reclave = document.querySelector("[name='Usuario[re-clave]']");
+
+        if (clave.value !== reclave.value) {
+            alert('No coincide la clave');
+            clave.value = '';
+            reclave.value = '';
+            return false;
+        }
+        if (clave.value.length < 5) {
+            alert('La clave es muy simple');
+            clave.value = '';
+            reclave.value = '';
+            return false;
+        }
+        let email = document.querySelector("[name='Usuario[email]']");
+        if (!esEmailValido(email.value)) {
+            alert('No es un email correcto');
+            email.value = '';
+            return false;
+        }
+        //Firebase
+        firebase.auth().createUserWithEmailAndPassword(email.value, clave.value).catch(function (error) {
+            // Handle Errors here.
+            var errorCode = error.code;
+            var errorMessage = error.message;
+            if (errorCode == 'auth/weak-password') {
+                alert('The password is too weak.');
+            } else {
+                alert(errorMessage);
+            }
+            //console.log(error);
+        });
+        return false
+    }
+
+    /**
+     *
+     * @param email
+     * @returns {boolean}
+     */
+    function esEmailValido(email) {
+        var re = /\S+@\S+\.\S+/;
+        return re.test(email);
+    }
+</script>
 </body>
 </html>
