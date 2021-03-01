@@ -35,6 +35,8 @@
 <canvas height="3" id="myCanvas" width="4"></canvas>
 <script>
     'use strict'
+    let fps = 1;
+    let intervalo = 1000 / fps;
 
     function Jugador(dorsal, equipo) {
         let x = 0;
@@ -45,8 +47,12 @@
         }
     }
 
-    function Equipo() {
+    function Equipo(anchoCampo, altocampo, tamano, izquierda) {
         let jugadores = [];
+        let ancho = anchoCampo;
+        let alto = altocampo;
+        let radio = tamano;
+        let azul = !!izquierda;
         for (let i = 1; i < 11; i++) {
             jugadores.push(new Jugador(i));
         }
@@ -56,19 +62,52 @@
                 jugador.dibujar(ctx);
             })
         }
-    }
-
-    function Balon() {
-        this.dibujar = function (ctx) {
-
+        this.actualizar = function () {
         }
     }
 
-    function Juego(ctx) {
+    function Balon(xInicial, yInicial, tamano, minX, minY, maxX, maxY) {
+        const maxVel = tamano * 7;
+        let x = xInicial;
+        let y = yInicial;
+        let vx = 0;
+        let vy = 0;
+        let vel = 0;
+        let radio = tamano;
+        let arCompleto = Math.PI * 2;
+        this.dibujar = function (ctx) {
+            ctx.beginPath();
+            ctx.arc(x, y, radio, 0, arCompleto);
+            ctx.fillStyle = "#FFF";
+            ctx.fill();
+            ctx.closePath();
+        }
+        this.actualizar = function (nuevoX, nuevoY, velX, velY, nuevoVel) {
+            x = nuevoX || x;
+            y = nuevoY || y;
+            vx = velX || vx;
+            vy = velY || vy;
+            vel = nuevoVel || vel;
+            vel = vel > maxVel ? maxVel : vel;
+            if (x + vx * vel > maxX || x + vx * vel < minX) {
+                vx = -vx;
+                vel++;
+            }
+            if (y + vy * vel > maxY || y + vy * vel < minY) {
+                vy = -vy;
+                vel++;
+            }
+            x = x + vx * vel;
+            y = y + vy * vel;
+        }
+    }
 
-        let equipoA = new Equipo();
-        let equipoB = new Equipo();
-        let bola = new Balon();
+    function Juego() {
+        let ctx = null;
+
+        let equipoA = null;
+        let equipoB = null;
+        let balon = null;
 
         let minX = 0;
         let minY = 0;
@@ -94,9 +133,9 @@
         let porteriaMinY;
         let porteriaMaxY;
 
-        this.inicia = function (ctx) {
+        this.inicia = function (elctx) {
+            ctx = elctx;
             let bordes = 1 / 100;
-
             minX = ctx.canvas.width * bordes;
             minY = ctx.canvas.height * bordes;
             maxX = ctx.canvas.width - ctx.canvas.width * bordes;
@@ -128,12 +167,18 @@
             porteriaMinY = minY + 4 * alto / 9;
             porteriaMaxY = alto / 9;
 
-            this.dibujar(ctx);
+            let tamanoBalon = (ancho + alto) / 450;
+            balon = new Balon(mitadX, mitadY, tamanoBalon, minX, minY, maxX, maxY);
+
+            let tamanoJugador = tamanoBalon * 2
+            equipoA = new Equipo(ancho, alto, tamanoJugador);
+            equipoB = new Equipo(ancho, alto, tamanoJugador);
+
+            balon.actualizar(null, null, Math.random() - Math.random(), Math.random() - Math.random(), tamanoBalon);
+            ciclo();
         }
 
-        this.dibujar = function (ctx) {
-            //Limpiar
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        function dibujarCampo() {
             //dibujamos el fondo verde
             ctx.beginPath();
             ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -182,7 +227,7 @@
 
             //linea de la mitad y circulo
             ctx.beginPath();
-            ctx.rect(mitadX, minY, mitadX, maxY);
+            ctx.rect(mitadX, minY, 0, alto);
             ctx.strokeStyle = "#FFF";
             ctx.stroke();
             ctx.closePath();
@@ -203,13 +248,30 @@
             ctx.strokeStyle = "#FFF";
             ctx.stroke();
             ctx.closePath();
+        }
 
+        function dibujar() {
+            //Limpiar
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            dibujarCampo();
             //equipos
             equipoA.dibujar(ctx);
             equipoB.dibujar(ctx);
-            bola.dibujar(ctx);
+            balon.dibujar(ctx);
         }
 
+        function actualizar() {
+            balon.actualizar();
+            equipoA.actualizar();
+            equipoB.actualizar();
+        }
+
+        function ciclo() {
+            actualizar();
+            dibujar()
+            //setTimeout(ciclo, intervalo);
+            requestAnimationFrame(ciclo);
+        }
 
     }
 
@@ -241,6 +303,32 @@
         setTimeout(preparar, 100);
     }
 
+    window.addEventListener('keyup', function (event) {
+        if (event.key !== undefined) {
+            tecleo(event.key, 'Key');
+        } else if (event.keyIdentifier !== undefined) {
+            tecleo(event.keyIdentifier, 'keyIdentifier');
+        } else if (event.keyCode !== undefined) {
+            tecleo(event.keyCode, 'keyCode');
+        }
+    }, false);
+
+    function tecleo(evento, tipo) {
+        switch (evento) {
+            case 'ArrowUp':
+                fps++;
+                intervalo = 1000 / fps;
+                console.log(fps);
+                break
+            case 'ArrowDown':
+                fps--;
+                intervalo = 1000 / fps;
+                console.log(fps);
+                break
+            default:
+                break;
+        }
+    }
 
 </script>
 
