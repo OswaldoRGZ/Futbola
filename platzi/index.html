@@ -100,8 +100,20 @@
 <script src="https://www.gstatic.com/firebasejs/8.2.9/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.2.9/firebase-analytics.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.2.9/firebase-auth.js"></script>
+<!-- MATERIAL DESIGN -->
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+<!-- Load TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
 <script>
     'use strict';
+    /*
+    ███████╗██╗██████╗ ███████╗██████╗  █████╗ ███████╗███████╗
+    ██╔════╝██║██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
+    █████╗  ██║██████╔╝█████╗  ██████╔╝███████║███████╗█████╗
+    ██╔══╝  ██║██╔══██╗██╔══╝  ██╔══██╗██╔══██║╚════██║██╔══╝
+    ██║     ██║██║  ██║███████╗██████╔╝██║  ██║███████║███████╗
+    ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
+    */
 
     // Your web app's Firebase configuration
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -167,369 +179,654 @@
         return re.test(texto);
     }
 
-</script>
-<!-- MATERIAL DESIGN -->
-<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
-<script>
-    const ORDENANDO = 0;
-    const JUGANDO = 1;
-    const ENTRENANDO = 2;
+    /*
+    ███╗   ███╗██╗   ██╗███╗   ██╗██████╗  ██████╗
+    ████╗ ████║██║   ██║████╗  ██║██╔══██╗██╔═══██╗
+    ██╔████╔██║██║   ██║██╔██╗ ██║██║  ██║██║   ██║
+    ██║╚██╔╝██║██║   ██║██║╚██╗██║██║  ██║██║   ██║
+    ██║ ╚═╝ ██║╚██████╔╝██║ ╚████║██████╔╝╚██████╔╝
+    ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝  ╚═════╝
+    */
+    const ESTADO_PREPARANDO = 0;//Crear el mapa, canvas, cancha, inicio
+    const ESTADO_ORDENANDO = 1;//arrastrar y soltar
+    const ESTADO_JUGANDO = 2;//jugando
+    const ESTADO_ENTRENANDO = 3;//pausaron para dar ordenens
+
+    const POSESION_IZQ = -1;
+    const POSESION_DER = 1;
+    const POSESION_NADIE = 0;
+    const TIEMPO_TOTAL = 300;
+    const DOS_PI = Math.PI * 2;
+
+    const INTERVALO_PENSAR = 250;
 
     let estaMoviRaton = false;
-    let estado = -1;
+    let estado = ESTADO_PREPARANDO;
+    let minX = 0;
+    let minY = 0;
+    let maxX = 0;
+    let maxY = 0;
+    let alto = 0;
+    let ancho = 0;
 
-    function Juego() {
-        const arCompleto = Math.PI * 2;
-        let ctx = null;
+    /*
+     ███████╗ ██████╗ ██╗   ██╗██╗██████╗  ██████╗
+     ██╔════╝██╔═══██╗██║   ██║██║██╔══██╗██╔═══██╗
+     █████╗  ██║   ██║██║   ██║██║██████╔╝██║   ██║
+     ██╔══╝  ██║▄▄ ██║██║   ██║██║██╔═══╝ ██║   ██║
+     ███████╗╚██████╔╝╚██████╔╝██║██║     ╚██████╔╝
+     ╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚═╝╚═╝      ╚═════╝
+     */
+    class Equipo {
 
-        let equipoA = null;
-        let equipoB = null;
-        let balon = null;
+        constructor(izq) {
+            this.jugadores = [];
+            this.jugMoviendo = null;
+            this.izquierda = izq;
+            this.tUltPensa = izq ? INTERVALO_PENSAR / 2 : 0;
+            let posiciones = [];
+            let total = 11;
+            do {
+                let pos = (1 + Math.floor(Math.random() * 9)) + '' + (1 + Math.floor(Math.random() * 9));
+                if (posiciones.indexOf(pos) === -1) {
+                    posiciones.push(pos);
+                    total--;
+                }
+            } while (total > 0);
 
+            for (let i = 1; i <= 11; i++) {
+                //Aleatorio en su lado de la cancha correspondiente
+                let posx = parseInt(posiciones[i - 1].charAt(0));
+                let posy = parseInt(posiciones[i - 1].charAt(1));
+                let espacio = ancho / 2;
 
-        let bombaAncho = 0;
-        let bombaAlto = 0;
-        let bombaMinY = 0;
-        let bombaDerMinX = 0;
-        let mitadX;
-        let mitadY;
-        let radioCentro;
-        let radioCompleto;
-        let radioMitad;
-        let radioAngulo;
-        let bombaIzqMinXRadio;
-        let bombaChicaAncho;
-        let bombaChicaAlto;
-        let bombaChicaMinY;
-        let bombaChicaDerMinX;
-        let porteriaMinY;
-        let porteriaMaxY;
+                let inicialX = minX + (this.izquierda ? 0 : ancho / 2) + (espacio / 10) * posx;
+                let inicialY = minY + (alto / 10) * posy;
 
-        let minX = 0;
-        let minY = 0;
-        let alto = 0;
-        let ancho = 0;
-        let maxX = 0;
-        let maxY = 0;
-
-        function Jugador() {
-            const tamano = (ancho + alto) / 400;
-            let x = 0;
-            let y = 0;
-            let angulo = 0;
-            let vel = 0;
-            let color;
-            let esArquero = false;
-            let izquierda = true;
-
-            this.iniciar = function(equipo, nuevoX, nuevoY) {
-                color = equipo ? 'blue' : 'red';
-                x = nuevoX || Math.random() * ancho;
-                y = nuevoY || alto / 4 + Math.random() * alto / 2;
-                angulo = equipo ? 0 : Math.PI;//mira a la izquierda o derecha
-                izquierda = equipo;
-            };
-
-            this.dibujar = function(ctx) {
-                ctx.beginPath();
-                ctx.arc(x, y, tamano, 0, arCompleto);
-                ctx.fillStyle = color;
-                ctx.fill();
-                ctx.lineWidth = 1;
-                ctx.arc(x, y, tamano, 0, arCompleto);
-                ctx.strokeStyle = esArquero ? 'white' : 'black';
-                ctx.stroke();
-                ctx.closePath();
-            };
-
-            this.actualizar = function(nuevoX, nuevoY) {
-                x = nuevoX || x;
-                y = nuevoY || y;
-            };
-
-            this.asignaArquero = function() {
-                esArquero = true;
-                x = izquierda ? tamano * 2 : ancho - tamano * 2;
-                y = alto / 2;
-            };
-
-            this.getX = function() {
-                return x;
-            };
-
-            this.getY = function() {
-                return y;
-            };
-
-            this.setXY = function(offsetX, offsetY) {
-                x = offsetX;
-                y = offsetY;
-            };
-
+                let jug = new Jugador(this.izquierda, inicialX, inicialY);
+                jug.actualizar();
+                if (i === 1) {
+                    jug.asignaArquero();
+                }
+                this.jugadores.push(jug);
+            }
+            this.cerebroA = new Cerebro(96, 286, 190);
+            this.cerebroD = new Cerebro(96, 256, 160);
         }
 
-        function Equipo() {
-            let jugadores = [];
-            let jugMoviendo = null;
+        dibujar(ctx) {
+            this.jugadores.forEach(function(jugador) {
+                jugador.dibujar(ctx);
+            });
+        }
 
-            this.dibujar = function(ctx) {
-                jugadores.forEach(function(jugador) {
-                    jugador.dibujar(ctx);
+        /**
+         *
+         */
+        actualizar(rival, balon, tengoPos, estadoPartido) {
+            if (this.tUltPensa > INTERVALO_PENSAR) {
+                console.log(this.izquierda ? 'Izq' : 'Der', 'Pensando');
+                let entradas = this.percibir(rival, balon, estadoPartido);
+                let acciones = this.pensar(entradas, tengoPos);
+                this.actuar(acciones);
+                this.tUltPensa = 0;
+            }
+            this.tUltPensa++;
+            this.jugadores.forEach(function(jugador) {
+                jugador.actualizar();
+            });
+        }
+
+        /**
+         * Normaliza la posicion del balon y todos los jugadores en cancha
+         * el marcador, el tiempo, etc
+         * @param {Equipo} rival
+         * @param {Balon} balon
+         * @param estadoPartido
+         * @returns {[]}
+         */
+        percibir(rival, balon, estadoPartido) {
+            let entradas = [];
+            const { golesIzq, golesDer, posesIzq, posesDer, tiempRes } = estadoPartido;
+            if (this.izquierda) {
+                this.jugadores.forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((x - minX) / ancho);
+                    entradas.push((y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push(angulo / DOS_PI);
                 });
-            };
-
-            this.actualizar = function() {
-                jugadores.forEach(function(jugador) {
-                    jugador.actualizar();
+                rival.getJugadores().forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((ancho - x - minX) / ancho);
+                    entradas.push((alto - y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push((angulo + Math.PI) / DOS_PI);
                 });
-            };
+                //balon
+                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
+                entradas.push((x - minX) / ancho);
+                entradas.push((y - minY) / alto);
+                entradas.push(vx);
+                entradas.push(vy);
+                entradas.push(vel / maxVel);
+                //esta ganando o perdiendo
+                entradas.push(golesIzq > golesDer ? 1 : 0);
+                //posesion porcentaje
+                entradas.push(posesIzq / (posesIzq + posesDer));
+            } else {
+                this.jugadores.forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((ancho - x - minX) / ancho);
+                    entradas.push((alto - y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push((angulo + Math.PI) / DOS_PI);
+                });
+                rival.getJugadores().forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((x - minX) / ancho);
+                    entradas.push((y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push(angulo / DOS_PI);
+                });
+                //balon
+                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
+                entradas.push((ancho - x - minX) / ancho);
+                entradas.push((alto - y - minY) / alto);
+                entradas.push(vx);
+                entradas.push(vy);
+                entradas.push(vel / maxVel);
+                //esta ganando o perdiendo
+                entradas.push(golesIzq < golesDer ? 1 : 0);
+                //posesion porcentaje
+                entradas.push(posesDer / (posesIzq + posesDer));
+            }
+            //tiempo restante
+            entradas.push((TIEMPO_TOTAL - tiempRes) / TIEMPO_TOTAL);
+            return entradas;
+        }
 
-            this.iniciar = function(izquierda) {
-                for (let i = 1; i <= 11; i++) {
-                    let jug = new Jugador();
-                    //Aleatorio en su lado de la cancha correspondiente
-                    let inicialX = izquierda ? Math.random() * ancho / 2 : ancho / 2 + Math.random() * ancho / 2;
-                    jug.iniciar(izquierda, inicialX);
-                    jug.actualizar();
-                    if (i === 1) {
-                        jug.asignaArquero();
-                    }
-                    jugadores.push(jug);
+        getJugadores() {
+            return this.jugadores;
+        }
+
+        selecJugador(offsetX, offsetY) {
+            let distanciaClic = (ancho + alto) / 100;
+            for (let jug of this.jugadores) {
+                const { x, y } = jug.getVals();
+                if (distanciaClic > distancia(offsetX, offsetY, x + minX, y + minY)) {
+                    this.jugMoviendo = jug;
+                    return true;
                 }
-            };
+            }
+            return false;
+        }
 
-            this.selecJugador = function(offsetX, offsetY) {
-                let distanciaClic = (ancho + alto) / 100;
-                jugadores.forEach(function(jug) {
-                    if (distanciaClic > distancia(offsetX, offsetY, jug.getX(), jug.getY())) {
-                        jugMoviendo = jug;
-                        return true;
-                    }
-                });
+        moverJugador(offsetX, offsetY) {
+            if (this.jugMoviendo) {
+                this.jugMoviendo.setXY(offsetX, offsetY);
+                return true;
+            } else {
                 return false;
-            };
-
-
-            this.moverJugador = function(offsetX, offsetY) {
-                if (jugMoviendo) {
-                    jugMoviendo.setXY(offsetX, offsetY);
-                    return true;
-                } else {
-                    return false;
-                }
-
-            };
-
-            this.sueltaJugador = function() {
-                if (jugMoviendo) {
-                    jugMoviendo = null;
-                    return true;
-                } else {
-                    return false;
-                }
-
-            };
-        }
-
-        function Balon() {
-            const tamano = (ancho + alto) / 500;
-            const maxVel = tamano * 7;
-
-            let x = 0;
-            let y = 0;
-            let vx = 0;
-            let vy = 0;
-            let vel = 0;
-
-            this.dibujar = function(ctx) {
-                ctx.beginPath();
-                ctx.arc(x, y, tamano, 0, arCompleto);
-                ctx.fillStyle = '#FFF';
-                ctx.fill();
-                ctx.closePath();
-            };
-            this.actualizar = function(nuevoX, nuevoY, nuevoVelX, nuevoVelY, nuevoV) {
-                x = nuevoX || x;
-                y = nuevoY || y;
-                vx = nuevoVelX || vx;
-                vy = nuevoVelY || vy;
-                vel = nuevoV || vel;
-                vel = vel > maxVel ? maxVel : vel;
-                if (x + vx * vel > maxX || x + vx * vel < minX) {
-                    vx = -vx;
-                    vel++;
-                }
-                if (y + vy * vel > maxY || y + vy * vel < minY) {
-                    vy = -vy;
-                    vel++;
-                }
-                x = x + vx * vel;
-                y = y + vy * vel;
-            };
-            this.iniciar = function() {
-                x = minX + ancho / 2;
-                y = minY + alto / 2;
-            };
+            }
 
         }
 
-        this.inicia = function(elctx) {
-            ctx = elctx;
+        sueltaJugador() {
+            if (this.jugMoviendo) {
+                this.jugMoviendo = null;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        /**
+         *
+         * @param entradas
+         * @param tengoPos
+         * @returns {any}
+         */
+        pensar(entradas, tengoPos) {
+            if (tengoPos) {
+                return this.cerebroA.pensar(entradas);
+            } else {
+                return this.cerebroD.pensar(entradas);
+            }
+        }
+
+        /**
+         *
+         * @param acciones
+         * @returns {*}
+         */
+        actuar(acciones) {
+            return acciones;
+        }
+    }
+
+    /*
+         ██╗██╗   ██╗ ██████╗  █████╗ ██████╗  ██████╗ ██████╗
+         ██║██║   ██║██╔════╝ ██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
+         ██║██║   ██║██║  ███╗███████║██║  ██║██║   ██║██████╔╝
+    ██   ██║██║   ██║██║   ██║██╔══██║██║  ██║██║   ██║██╔══██╗
+    ╚█████╔╝╚██████╔╝╚██████╔╝██║  ██║██████╔╝╚██████╔╝██║  ██║
+     ╚════╝  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
+     */
+    class Jugador {
+        /**
+         *
+         * @param equipo
+         * @param nuevoX
+         * @param nuevoY
+         */
+        constructor(equipo, nuevoX, nuevoY) {
+            this.tamano = (ancho + alto) / 400;
+            this.maxVel = this.tamano * 7;
+            this.esArquero = false;
+            this.color = equipo ? 'blue' : 'red';
+            this.x = nuevoX || 1;
+            this.y = nuevoY || 1;
+            this.vel = 0;
+            this.angulo = equipo ? 0 : Math.PI;//mira a la izquierda o derecha
+            this.izquierda = equipo;
+        };
+
+        /**
+         *
+         * @param ctx
+         */
+        dibujar(ctx) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
+            ctx.strokeStyle = this.esArquero ? 'white' : 'black';
+            ctx.stroke();
+            ctx.closePath();
+        };
+
+        /**
+         *
+         */
+        actualizar() {
+            this.x = this.x + Math.cos(this.angulo) * this.vel;
+            this.y = this.y + Math.sin(this.angulo) * this.vel;
+        };
+
+        /**
+         *
+         */
+        asignaArquero() {
+            this.esArquero = true;
+            this.x = this.izquierda ? minX + this.tamano * 2 : minX + ancho - this.tamano * 2;
+            this.y = minY + alto / 2;
+        };
+
+        /**
+         *
+         * @param offsetX
+         * @param offsetY
+         */
+        setXY(offsetX, offsetY) {
+            this.x = offsetX;
+            this.y = offsetY;
+
+        };
+
+        /**
+         *
+         * @returns {{maxVel: number, x: *, y: number, angulo: number, vel: number}}
+         */
+        getVals() {
+            return {
+                'x': this.x,
+                'y': this.y,
+                'vel': this.vel,
+                'angulo': this.angulo,
+                'maxVel': this.maxVel
+            };
+        };
+
+    }
+
+    /*
+    ██████╗  █████╗ ██╗      ██████╗ ███╗   ██╗
+    ██╔══██╗██╔══██╗██║     ██╔═══██╗████╗  ██║
+    ██████╔╝███████║██║     ██║   ██║██╔██╗ ██║
+    ██╔══██╗██╔══██║██║     ██║   ██║██║╚██╗██║
+    ██████╔╝██║  ██║███████╗╚██████╔╝██║ ╚████║
+    ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
+     */
+    class Balon {
+        /**
+         *
+         */
+        constructor() {
+            this.tamano = (ancho + alto) / 500;
+            this.maxVel = this.tamano * 7;
+            this.friccion = 0.0001;
+            this.x = minX + ancho / 2;
+            this.y = minY + alto / 2;
+            this.vx = 0;
+            this.vy = 0;
+            this.vel = 0;
+        }
+
+        /**
+         *
+         * @param ctx
+         */
+        dibujar(ctx) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.closePath();
+        };
+
+        /**
+         *
+         */
+        actualizar() {
+            this.vel = this.vel > this.maxVel ? this.maxVel : (this.vel <= 0.1 ? 0 : this.vel);
+
+            if (this.x + this.vx * this.vel > maxX || this.x + this.vx * this.vel < minX) {
+                this.vx = -this.vx;
+            }
+            if (this.y + this.vy * this.vel > maxY || this.y + this.vy * this.vel < minY) {
+                this.vy = -this.vy;
+            }
+            this.x = this.x + this.vx * this.vel;
+            this.y = this.y + this.vy * this.vel;
+            this.vel = this.vel - this.friccion;
+        };
+
+        /**
+         *
+         * @param nuevoX
+         * @param nuevoY
+         * @param nuevoVelX
+         * @param nuevoVelY
+         * @param nuevoV
+         */
+        setValores(nuevoX, nuevoY, nuevoVelX, nuevoVelY, nuevoV) {
+            this.x = nuevoX || this.x;
+            this.y = nuevoY || this.y;
+            this.vx = nuevoVelX || this.vx;
+            this.vy = nuevoVelY || this.vy;
+            this.vel = nuevoV || this.vel;
+        };
+
+        /**
+         *
+         * @returns {{vx: Balon.getValores.vx, vy: Balon.getValores.vy, maxVel: Balon.getValores.maxVel, x: Balon.getValores.x, y: Balon.getValores.y, vel: Balon.getValores.vel}}
+         */
+        getValores = function() {
+            return {
+                'x': this.x,
+                'y': this.y,
+                'vx': this.vx,
+                'vy': this.vy,
+                'vel': this.vel,
+                'maxVel': this.maxVel
+            };
+        };
+
+    }
+
+    /*
+         ██╗██╗   ██╗███████╗ ██████╗  ██████╗
+         ██║██║   ██║██╔════╝██╔════╝ ██╔═══██╗
+         ██║██║   ██║█████╗  ██║  ███╗██║   ██║
+    ██   ██║██║   ██║██╔══╝  ██║   ██║██║   ██║
+    ╚█████╔╝╚██████╔╝███████╗╚██████╔╝╚██████╔╝
+     ╚════╝  ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝
+     */
+    class Juego {
+
+        constructor(elctx) {
+            this.ctx = elctx;
+
             let bordes = 1 / 100;
-            minX = ctx.canvas.width * bordes;
-            minY = ctx.canvas.height * bordes;
-            maxX = ctx.canvas.width - ctx.canvas.width * bordes;
-            maxY = ctx.canvas.height - ctx.canvas.height * bordes;
 
+            minX = this.ctx.canvas.width * bordes;
+            minY = this.ctx.canvas.height * bordes;
+            maxX = this.ctx.canvas.width - this.ctx.canvas.width * bordes;
+            maxY = this.ctx.canvas.height - this.ctx.canvas.height * bordes;
             alto = maxY - minY;
             ancho = maxX - minX;
 
-            bombaAncho = ancho / 7;
-            bombaAlto = alto / 2;
-            bombaMinY = minY + alto / 4;
-            bombaDerMinX = maxX - bombaAncho;
+            this.bombaAncho = ancho / 7;
+            this.bombaAlto = alto / 2;
+            this.bombaMinY = minY + alto / 4;
+            this.bombaDerMinX = maxX - this.bombaAncho;
+            this.bombaChicaAncho = ancho / 18;
+            this.bombaChicaAlto = alto / 4;
+            this.bombaChicaMinY = this.bombaMinY + alto / 8;
+            this.bombaChicaDerMinX = maxX - this.bombaChicaAncho;
+            this.bombaIzqMinXRadio = minX + this.bombaAncho;
+            this.mitadX = this.ctx.canvas.width / 2;
+            this.mitadY = this.ctx.canvas.height / 2;
+            this.radioCentro = this.bombaAncho / 3;
+            this.radioCompleto = DOS_PI;
+            this.radioMitad = Math.PI / 2;
+            this.radioAngulo = Math.PI;
+            this.porteriaMinY = minY + 4 * alto / 9;
+            this.porteriaMaxY = alto / 9;
 
-            bombaChicaAncho = ancho / 18;
-            bombaChicaAlto = alto / 4;
-            bombaChicaMinY = bombaMinY + alto / 8;
-            bombaChicaDerMinX = maxX - bombaChicaAncho;
+            this.tiempoAnt = 0;
+            this.golesIzq = 0;
+            this.golesDer = 0;
+            this.tiempRes = 0;
+            this.posesIzq = 1;
+            this.posesDer = 1;
+            this.posesion = POSESION_NADIE;
 
-            bombaIzqMinXRadio = minX + bombaAncho;
+            this.equipoA = new Equipo(true);
+            this.equipoB = new Equipo(false);
+            this.balon = new Balon();
+            //Pasa de estado previo a estado ordenando
+            estado = ESTADO_ORDENANDO;
+        }
 
-            mitadX = ctx.canvas.width / 2;
-            mitadY = ctx.canvas.height / 2;
-
-            radioCentro = bombaAncho / 3;
-            radioCompleto = arCompleto;
-            radioMitad = Math.PI / 2;
-            radioAngulo = Math.PI;
-
-            porteriaMinY = minY + 4 * alto / 9;
-            porteriaMaxY = alto / 9;
-
-            balon = new Balon();
-
-            equipoA = new Equipo();//true para izquierda
-            equipoB = new Equipo();//false para derecha
-            equipoA.iniciar(true);
-            equipoB.iniciar(false);
-            balon.iniciar();
-            //ahora pasamos al modo ordenar equipo
-            estado = ORDENANDO;
-
-            ciclo();
-        };
-
-        this.ratonClic = function(offsetX, offsetY) {
-            if (!equipoA.selecJugador(offsetX, offsetY)) {
-                equipoB.selecJugador(offsetX, offsetY);
+        ratonClic(offsetX, offsetY) {
+            if (!this.equipoA.selecJugador(offsetX, offsetY)) {
+                this.equipoB.selecJugador(offsetX, offsetY);
             }
         };
 
-        this.ratonMueve = function(offsetX, offsetY) {
-            if (!equipoA.moverJugador(offsetX, offsetY)) {
-                equipoB.moverJugador(offsetX, offsetY);
+        ratonMueve(offsetX, offsetY) {
+            if (!this.equipoA.moverJugador(offsetX, offsetY)) {
+                this.equipoB.moverJugador(offsetX, offsetY);
             }
         };
 
-        this.ratonSuelta = function() {
-            if (!equipoA.sueltaJugador()) {
-                equipoB.sueltaJugador();
+        ratonSuelta() {
+            if (!this.equipoA.sueltaJugador()) {
+                this.equipoB.sueltaJugador();
             }
         };
 
-        function dibujarCampo() {
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 1;
+        /**
+         *
+         * @param elctx
+         */
+        dibujarCampo(elctx) {
+            elctx.strokeStyle = 'white';
+            elctx.lineWidth = 1;
             //dibujamos el fondo verde
-            ctx.beginPath();
-            ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            ctx.fillStyle = 'rgba(0, 120, 24, 0.9)';
-            ctx.fill();
-            ctx.closePath();
+            elctx.beginPath();
+            elctx.rect(0, 0, elctx.canvas.width, elctx.canvas.height);
+            elctx.fillStyle = 'rgba(0, 120, 24, 0.9)';
+            elctx.fill();
+            elctx.closePath();
 
             //bordes de la cancha
-            ctx.beginPath();
-            ctx.rect(minX, minY, ancho, alto);
-            ctx.stroke();
-            ctx.closePath();
+            elctx.beginPath();
+            elctx.rect(minX, minY, ancho, alto);
+            elctx.stroke();
+            elctx.closePath();
 
             //bomba izquierda y derecha
-            ctx.beginPath();
-            ctx.rect(minX, bombaMinY, bombaAncho, bombaAlto);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.rect(minX, bombaChicaMinY, bombaChicaAncho, bombaChicaAlto);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.arc(bombaIzqMinXRadio, mitadY, radioCentro, -radioMitad, radioMitad);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.rect(bombaDerMinX, bombaMinY, bombaAncho, bombaAlto);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.arc(bombaDerMinX, mitadY, radioCentro, radioMitad, -radioMitad);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.rect(bombaChicaDerMinX, bombaChicaMinY, bombaChicaAncho, bombaChicaAlto);
-            ctx.stroke();
-            ctx.closePath();
+            elctx.beginPath();
+            elctx.rect(minX, this.bombaMinY, this.bombaAncho, this.bombaAlto);
+            elctx.stroke();
+            elctx.closePath();
+            elctx.beginPath();
+            elctx.rect(minX, this.bombaChicaMinY, this.bombaChicaAncho, this.bombaChicaAlto);
+            elctx.stroke();
+            elctx.closePath();
+            elctx.beginPath();
+            elctx.arc(this.bombaIzqMinXRadio, this.mitadY, this.radioCentro, -this.radioMitad, this.radioMitad);
+            elctx.stroke();
+            elctx.closePath();
+            elctx.beginPath();
+            elctx.rect(this.bombaDerMinX, this.bombaMinY, this.bombaAncho, this.bombaAlto);
+            elctx.stroke();
+            elctx.closePath();
+            elctx.beginPath();
+            elctx.arc(this.bombaDerMinX, this.mitadY, this.radioCentro, this.radioMitad, -this.radioMitad);
+            elctx.stroke();
+            elctx.closePath();
+            elctx.beginPath();
+            elctx.rect(this.bombaChicaDerMinX, this.bombaChicaMinY, this.bombaChicaAncho, this.bombaChicaAlto);
+            elctx.stroke();
+            elctx.closePath();
 
             //linea de la mitad y circulo
-            ctx.beginPath();
-            ctx.rect(mitadX, minY, 0, alto);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.arc(mitadX, mitadY, radioCentro, 0, radioCompleto);
-            ctx.stroke();
-            ctx.closePath();
+            elctx.beginPath();
+            elctx.rect(this.mitadX, minY, 0, alto);
+            elctx.stroke();
+            elctx.closePath();
+            elctx.beginPath();
+            elctx.arc(this.mitadX, this.mitadY, this.radioCentro, 0, this.radioCompleto);
+            elctx.stroke();
+            elctx.closePath();
 
             //porterias
-            ctx.beginPath();
-            ctx.rect(0, porteriaMinY, minX, porteriaMaxY);
-            ctx.stroke();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.rect(maxX, porteriaMinY, minX, porteriaMaxY);
-            ctx.stroke();
-            ctx.closePath();
+            elctx.beginPath();
+            elctx.rect(0, this.porteriaMinY, minX, this.porteriaMaxY);
+            elctx.stroke();
+            elctx.closePath();
+            elctx.beginPath();
+            elctx.rect(maxX, this.porteriaMinY, minX, this.porteriaMaxY);
+            elctx.stroke();
+            elctx.closePath();
         }
 
-        function dibujar() {
+        /**
+         *
+         */
+        dibujar() {
             //Limpiar
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            dibujarCampo();
+            this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+            this.dibujarCampo(this.ctx);
             //equipos
-            equipoA.dibujar(ctx);
-            equipoB.dibujar(ctx);
-            balon.dibujar(ctx);
+            this.equipoA.dibujar(this.ctx);
+            this.equipoB.dibujar(this.ctx);
+            this.balon.dibujar(this.ctx);
         }
 
-        function actualizar() {
-            if (estado === JUGANDO) {
-                balon.actualizar();
-                equipoA.actualizar();
-                equipoB.actualizar();
+        /**
+         *
+         */
+        actualizar() {
+            if (estado === ESTADO_JUGANDO) {
+                this.balon.actualizar();
+                let estadoPartido = {
+                    golesIzq: this.golesIzq,
+                    golesDer: this.golesDer,
+                    posesIzq: this.posesIzq,
+                    posesDer: this.posesDer,
+                    tiempRes: this.tiempRes
+                };
+                this.equipoA.actualizar(this.equipoB, this.balon, this.posesion === POSESION_IZQ, estadoPartido);
+                this.equipoB.actualizar(this.equipoA, this.balon, this.posesion === POSESION_DER, estadoPartido);
             }
         }
 
-        function ciclo() {
-            actualizar();
-            dibujar();
-            //setTimeout(ciclo, intervalo);
-            requestAnimationFrame(ciclo);
+        /**
+         *
+         */
+        ciclo(tiempo) {
+            let deltaTiempo = tiempo - this.tiempoAnt;
+            this.actualizar();
+            this.dibujar();
+            requestAnimationFrame(this.ciclo.bind(this));
         }
 
-        function distancia(x1, y1, x2, y2) {
-            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+
+    }
+
+    /*
+     ██████╗███████╗██████╗ ███████╗██████╗ ██████╗  ██████╗
+    ██╔════╝██╔════╝██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗
+    ██║     █████╗  ██████╔╝█████╗  ██████╔╝██████╔╝██║   ██║
+    ██║     ██╔══╝  ██╔══██╗██╔══╝  ██╔══██╗██╔══██╗██║   ██║
+    ╚██████╗███████╗██║  ██║███████╗██████╔╝██║  ██║╚██████╔╝
+     ╚═════╝╚══════╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝
+    */
+    class Cerebro {
+        constructor(e, o, s) {
+            this.nodosEntradas = e;
+            this.nodosOcultas = o;
+            this.nodosSalidas = s;
+            this.crearModelo();
+        }
+
+        crearModelo() {
+            this.modelo = tf.sequential();
+            /*const ocultas = tf.layers.dense({
+                units: this.nodosOcultas,
+                inputShape: [this.nodosEntradas],
+                activation: 'sigmoid'
+            });
+
+            this.model.add(ocultas);
+
+            const salidas = tf.layers.dense({
+                units: this.nodosSalidas,
+                activation: 'sigmoid'
+            });
+
+            this.modelo.add(salidas);*/
+        }
+
+        /**
+         *
+         * @param entradas
+         * @returns {*}
+         */
+        pensar(entradas) {
+            const xs = tf.tensor2d([entradas]);
+            const ys = this.modelo.predict2D(xs);
+            return ys.dataSync();
         }
     }
+
+    /**
+     *
+     * @param x1
+     * @param y1
+     * @param x2
+     * @param y2
+     * @returns {number}
+     */
+    function distancia(x1, y1, x2, y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    }
+
+    /*
+    ████████╗███████╗███╗   ███╗██████╗  ██████╗ ██████╗  █████╗ ██╗
+    ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██║
+       ██║   █████╗  ██╔████╔██║██████╔╝██║   ██║██████╔╝███████║██║
+       ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║   ██║██╔══██╗██╔══██║██║
+       ██║   ███████╗██║ ╚═╝ ██║██║     ╚██████╔╝██║  ██║██║  ██║███████╗
+       ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+     */
 
     /**
      * Inicia los datos para comenzar la partida
@@ -547,8 +844,8 @@
         ctx.canvas.width = ancho;
         ctx.canvas.height = alto;
 
-        let juego = new Juego();
-        juego.inicia(ctx);
+        let juego = new Juego(ctx);
+        juego.ciclo(1);
 
         let x = 0;
         let y = 0;
@@ -564,14 +861,14 @@
         };
 
         canvas.addEventListener('mousedown', e => {
-            if (estado === JUGANDO) return;
+            if (estado === ESTADO_JUGANDO) return;
             x = e.offsetX;
             y = e.offsetY;
             estaMoviRaton = true;
             switch (estado) {
-                case ENTRENANDO:
+                case ESTADO_ENTRENANDO:
                     break;
-                case ORDENANDO:
+                case ESTADO_ORDENANDO:
                     juego.ratonClic(e.offsetX, e.offsetY);
                     break;
                 default:
@@ -580,14 +877,14 @@
         });
 
         canvas.addEventListener('mousemove', e => {
-            if (estado === JUGANDO || !estaMoviRaton) return;
+            if (estado === ESTADO_JUGANDO || !estaMoviRaton) return;
             switch (estado) {
-                case ENTRENANDO:
+                case ESTADO_ENTRENANDO:
                     dibujar(x, y, e.offsetX, e.offsetY);
                     x = e.offsetX;
                     y = e.offsetY;
                     break;
-                case ORDENANDO:
+                case ESTADO_ORDENANDO:
                     juego.ratonMueve(e.offsetX, e.offsetY);
                     break;
                 default:
@@ -597,14 +894,14 @@
 
         window.addEventListener('mouseup', e => {
             estaMoviRaton = false;
-            if (estado === JUGANDO) return;
+            if (estado === ESTADO_JUGANDO) return;
             switch (estado) {
-                case ENTRENANDO:
+                case ESTADO_ENTRENANDO:
                     dibujar(x, y, e.offsetX, e.offsetY);
                     x = 0;
                     y = 0;
                     break;
-                case ORDENANDO:
+                case ESTADO_ORDENANDO:
                     juego.ratonSuelta();
                     break;
                 default:
@@ -612,6 +909,33 @@
             }
         });
 
+        probarTF();
+
+    }
+
+    function probarTF() {
+        const model = tf.sequential();
+        model.add(tf.layers.dense({
+            units: 1,
+            inputShape: [1]
+        }));
+
+        // Prepare the model for training: Specify the loss and the optimizer.
+        model.compile({
+            loss: 'meanSquaredError',
+            optimizer: 'sgd'
+        });
+
+        // Generate some synthetic data for training.
+        const xs = tf.tensor2d([1, 2, 3, 4], [4, 1]);
+        const ys = tf.tensor2d([1, 3, 5, 7], [4, 1]);
+
+        // Train the model using the data.
+        model.fit(xs, ys).then(() => {
+            // Use the model to do inference on a data point the model hasn't seen before:
+            // Open the browser devtools to see the output
+            model.predict(tf.tensor2d([5], [1, 1])).print();
+        });
     }
 
     window.addEventListener('keyup', function(event) {
@@ -630,9 +954,19 @@
                 break;
             case 'ArrowDown':
                 break;
+            case 'Enter':
+                if (estado === ESTADO_ORDENANDO) {
+                    alert('Inicia Juego');
+                    estado = ESTADO_JUGANDO;
+                }
+                break;
+            case 'a':
+                entrenar();
+                break;
             default:
                 break;
         }
+        console.log(evento, tipo);
     }
 
     function abreMenu(idElem) {
