@@ -104,6 +104,11 @@
 <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 <!-- Load TensorFlow.js -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+<!--Jugador-->
+<script src="jugador.js"></script>
+<script src="balon.js"></script>
+<script src="equipo.js"></script>
+
 <script>
     'use strict';
     /*
@@ -208,374 +213,6 @@
     let maxY = 0;
     let alto = 0;
     let ancho = 0;
-
-    /*
-     ███████╗ ██████╗ ██╗   ██╗██╗██████╗  ██████╗
-     ██╔════╝██╔═══██╗██║   ██║██║██╔══██╗██╔═══██╗
-     █████╗  ██║   ██║██║   ██║██║██████╔╝██║   ██║
-     ██╔══╝  ██║▄▄ ██║██║   ██║██║██╔═══╝ ██║   ██║
-     ███████╗╚██████╔╝╚██████╔╝██║██║     ╚██████╔╝
-     ╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚═╝╚═╝      ╚═════╝
-     */
-    class Equipo {
-
-        constructor(izq) {
-            this.jugadores = [];
-            this.jugMoviendo = null;
-            this.izquierda = izq;
-            this.tUltPensa = izq ? INTERVALO_PENSAR / 2 : 0;
-            let posiciones = [];
-            let total = 11;
-            do {
-                let pos = (1 + Math.floor(Math.random() * 9)) + '' + (1 + Math.floor(Math.random() * 9));
-                if (posiciones.indexOf(pos) === -1) {
-                    posiciones.push(pos);
-                    total--;
-                }
-            } while (total > 0);
-
-            for (let i = 1; i <= 11; i++) {
-                //Aleatorio en su lado de la cancha correspondiente
-                let posx = parseInt(posiciones[i - 1].charAt(0));
-                let posy = parseInt(posiciones[i - 1].charAt(1));
-                let espacio = ancho / 2;
-
-                let inicialX = minX + (this.izquierda ? 0 : ancho / 2) + (espacio / 10) * posx;
-                let inicialY = minY + (alto / 10) * posy;
-
-                let jug = new Jugador(this.izquierda, inicialX, inicialY);
-                jug.actualizar();
-                if (i === 1) {
-                    jug.asignaArquero();
-                }
-                this.jugadores.push(jug);
-            }
-            this.cerebroA = new Cerebro(96, 286, 190);
-            this.cerebroD = new Cerebro(96, 256, 160);
-        }
-
-        dibujar(ctx) {
-            this.jugadores.forEach(function(jugador) {
-                jugador.dibujar(ctx);
-            });
-        }
-
-        /**
-         *
-         */
-        actualizar(rival, balon, tengoPos, estadoPartido) {
-            if (this.tUltPensa > INTERVALO_PENSAR) {
-                console.log(this.izquierda ? 'Izq' : 'Der', 'Pensando');
-                let entradas = this.percibir(rival, balon, estadoPartido);
-                let acciones = this.pensar(entradas, tengoPos);
-                this.actuar(acciones);
-                this.tUltPensa = 0;
-            }
-            this.tUltPensa++;
-            this.jugadores.forEach(function(jugador) {
-                jugador.actualizar();
-            });
-        }
-
-        /**
-         * Normaliza la posicion del balon y todos los jugadores en cancha
-         * el marcador, el tiempo, etc
-         * @param {Equipo} rival
-         * @param {Balon} balon
-         * @param estadoPartido
-         * @returns {[]}
-         */
-        percibir(rival, balon, estadoPartido) {
-            let entradas = [];
-            const { golesIzq, golesDer, posesIzq, posesDer, tiempRes } = estadoPartido;
-            if (this.izquierda) {
-                this.jugadores.forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
-                    entradas.push((x - minX) / ancho);
-                    entradas.push((y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push(angulo / DOS_PI);
-                });
-                rival.getJugadores().forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
-                    entradas.push((ancho - x - minX) / ancho);
-                    entradas.push((alto - y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push((angulo + Math.PI) / DOS_PI);
-                });
-                //balon
-                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
-                entradas.push((x - minX) / ancho);
-                entradas.push((y - minY) / alto);
-                entradas.push(vx);
-                entradas.push(vy);
-                entradas.push(vel / maxVel);
-                //esta ganando o perdiendo
-                entradas.push(golesIzq > golesDer ? 1 : 0);
-                //posesion porcentaje
-                entradas.push(posesIzq / (posesIzq + posesDer));
-            } else {
-                this.jugadores.forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
-                    entradas.push((ancho - x - minX) / ancho);
-                    entradas.push((alto - y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push((angulo + Math.PI) / DOS_PI);
-                });
-                rival.getJugadores().forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
-                    entradas.push((x - minX) / ancho);
-                    entradas.push((y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push(angulo / DOS_PI);
-                });
-                //balon
-                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
-                entradas.push((ancho - x - minX) / ancho);
-                entradas.push((alto - y - minY) / alto);
-                entradas.push(vx);
-                entradas.push(vy);
-                entradas.push(vel / maxVel);
-                //esta ganando o perdiendo
-                entradas.push(golesIzq < golesDer ? 1 : 0);
-                //posesion porcentaje
-                entradas.push(posesDer / (posesIzq + posesDer));
-            }
-            //tiempo restante
-            entradas.push((TIEMPO_TOTAL - tiempRes) / TIEMPO_TOTAL);
-            return entradas;
-        }
-
-        getJugadores() {
-            return this.jugadores;
-        }
-
-        selecJugador(offsetX, offsetY) {
-            let distanciaClic = (ancho + alto) / 100;
-            for (let jug of this.jugadores) {
-                const { x, y } = jug.getVals();
-                if (distanciaClic > distancia(offsetX, offsetY, x + minX, y + minY)) {
-                    this.jugMoviendo = jug;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        moverJugador(offsetX, offsetY) {
-            if (this.jugMoviendo) {
-                this.jugMoviendo.setXY(offsetX, offsetY);
-                return true;
-            } else {
-                return false;
-            }
-
-        }
-
-        sueltaJugador() {
-            if (this.jugMoviendo) {
-                this.jugMoviendo = null;
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        /**
-         *
-         * @param entradas
-         * @param tengoPos
-         * @returns {any}
-         */
-        pensar(entradas, tengoPos) {
-            if (tengoPos) {
-                return this.cerebroA.pensar(entradas);
-            } else {
-                return this.cerebroD.pensar(entradas);
-            }
-        }
-
-        /**
-         *
-         * @param acciones
-         * @returns {*}
-         */
-        actuar(acciones) {
-            return acciones;
-        }
-    }
-
-    /*
-         ██╗██╗   ██╗ ██████╗  █████╗ ██████╗  ██████╗ ██████╗
-         ██║██║   ██║██╔════╝ ██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
-         ██║██║   ██║██║  ███╗███████║██║  ██║██║   ██║██████╔╝
-    ██   ██║██║   ██║██║   ██║██╔══██║██║  ██║██║   ██║██╔══██╗
-    ╚█████╔╝╚██████╔╝╚██████╔╝██║  ██║██████╔╝╚██████╔╝██║  ██║
-     ╚════╝  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
-     */
-    class Jugador {
-        /**
-         *
-         * @param equipo
-         * @param nuevoX
-         * @param nuevoY
-         */
-        constructor(equipo, nuevoX, nuevoY) {
-            this.tamano = (ancho + alto) / 400;
-            this.maxVel = this.tamano * 7;
-            this.esArquero = false;
-            this.color = equipo ? 'blue' : 'red';
-            this.x = nuevoX || 1;
-            this.y = nuevoY || 1;
-            this.vel = 0;
-            this.angulo = equipo ? 0 : Math.PI;//mira a la izquierda o derecha
-            this.izquierda = equipo;
-        };
-
-        /**
-         *
-         * @param ctx
-         */
-        dibujar(ctx) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            ctx.lineWidth = 1;
-            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
-            ctx.strokeStyle = this.esArquero ? 'white' : 'black';
-            ctx.stroke();
-            ctx.closePath();
-        };
-
-        /**
-         *
-         */
-        actualizar() {
-            this.x = this.x + Math.cos(this.angulo) * this.vel;
-            this.y = this.y + Math.sin(this.angulo) * this.vel;
-        };
-
-        /**
-         *
-         */
-        asignaArquero() {
-            this.esArquero = true;
-            this.x = this.izquierda ? minX + this.tamano * 2 : minX + ancho - this.tamano * 2;
-            this.y = minY + alto / 2;
-        };
-
-        /**
-         *
-         * @param offsetX
-         * @param offsetY
-         */
-        setXY(offsetX, offsetY) {
-            this.x = offsetX;
-            this.y = offsetY;
-
-        };
-
-        /**
-         *
-         * @returns {{maxVel: number, x: *, y: number, angulo: number, vel: number}}
-         */
-        getVals() {
-            return {
-                'x': this.x,
-                'y': this.y,
-                'vel': this.vel,
-                'angulo': this.angulo,
-                'maxVel': this.maxVel
-            };
-        };
-
-    }
-
-    /*
-    ██████╗  █████╗ ██╗      ██████╗ ███╗   ██╗
-    ██╔══██╗██╔══██╗██║     ██╔═══██╗████╗  ██║
-    ██████╔╝███████║██║     ██║   ██║██╔██╗ ██║
-    ██╔══██╗██╔══██║██║     ██║   ██║██║╚██╗██║
-    ██████╔╝██║  ██║███████╗╚██████╔╝██║ ╚████║
-    ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
-     */
-    class Balon {
-        /**
-         *
-         */
-        constructor() {
-            this.tamano = (ancho + alto) / 500;
-            this.maxVel = this.tamano * 7;
-            this.friccion = 0.0001;
-            this.x = minX + ancho / 2;
-            this.y = minY + alto / 2;
-            this.vx = 0;
-            this.vy = 0;
-            this.vel = 0;
-        }
-
-        /**
-         *
-         * @param ctx
-         */
-        dibujar(ctx) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
-            ctx.fillStyle = 'white';
-            ctx.fill();
-            ctx.closePath();
-        };
-
-        /**
-         *
-         */
-        actualizar() {
-            this.vel = this.vel > this.maxVel ? this.maxVel : (this.vel <= 0.1 ? 0 : this.vel);
-
-            if (this.x + this.vx * this.vel > maxX || this.x + this.vx * this.vel < minX) {
-                this.vx = -this.vx;
-            }
-            if (this.y + this.vy * this.vel > maxY || this.y + this.vy * this.vel < minY) {
-                this.vy = -this.vy;
-            }
-            this.x = this.x + this.vx * this.vel;
-            this.y = this.y + this.vy * this.vel;
-            this.vel = this.vel - this.friccion;
-        };
-
-        /**
-         *
-         * @param nuevoX
-         * @param nuevoY
-         * @param nuevoVelX
-         * @param nuevoVelY
-         * @param nuevoV
-         */
-        setValores(nuevoX, nuevoY, nuevoVelX, nuevoVelY, nuevoV) {
-            this.x = nuevoX || this.x;
-            this.y = nuevoY || this.y;
-            this.vx = nuevoVelX || this.vx;
-            this.vy = nuevoVelY || this.vy;
-            this.vel = nuevoV || this.vel;
-        };
-
-        /**
-         *
-         * @returns {{vx: Balon.getValores.vx, vy: Balon.getValores.vy, maxVel: Balon.getValores.maxVel, x: Balon.getValores.x, y: Balon.getValores.y, vel: Balon.getValores.vel}}
-         */
-        getValores = function() {
-            return {
-                'x': this.x,
-                'y': this.y,
-                'vx': this.vx,
-                'vy': this.vy,
-                'vel': this.vel,
-                'maxVel': this.maxVel
-            };
-        };
-
-    }
 
     /*
          ██╗██╗   ██╗███████╗ ██████╗  ██████╗
@@ -762,6 +399,378 @@
     }
 
     /*
+     ███████╗ ██████╗ ██╗   ██╗██╗██████╗  ██████╗
+     ██╔════╝██╔═══██╗██║   ██║██║██╔══██╗██╔═══██╗
+     █████╗  ██║   ██║██║   ██║██║██████╔╝██║   ██║
+     ██╔══╝  ██║▄▄ ██║██║   ██║██║██╔═══╝ ██║   ██║
+     ███████╗╚██████╔╝╚██████╔╝██║██║     ╚██████╔╝
+     ╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚═╝╚═╝      ╚═════╝
+     */
+
+    class Equipo {
+
+        constructor(izq) {
+            this.jugadores = [];
+            this.jugMoviendo = null;
+            this.izquierda = izq;
+            this.tUltPensa = izq ? INTERVALO_PENSAR / 2 : 0;
+            let posiciones = [];
+            let total = 11;
+            do {
+                let pos = (1 + Math.floor(Math.random() * 9)) + '' + (1 + Math.floor(Math.random() * 9));
+                if (posiciones.indexOf(pos) === -1) {
+                    posiciones.push(pos);
+                    total--;
+                }
+            } while (total > 0);
+
+            for (let i = 1; i <= 11; i++) {
+                //Aleatorio en su lado de la cancha correspondiente
+                let posx = parseInt(posiciones[i - 1].charAt(0));
+                let posy = parseInt(posiciones[i - 1].charAt(1));
+                let espacio = ancho / 2;
+
+                let inicialX = minX + (this.izquierda ? 0 : ancho / 2) + (espacio / 10) * posx;
+                let inicialY = minY + (alto / 10) * posy;
+
+                let jug = new Jugador(this.izquierda, inicialX, inicialY);
+                jug.actualizar();
+                if (i === 1) {
+                    jug.asignaArquero();
+                }
+                this.jugadores.push(jug);
+            }
+            this.cerebroA = new Cerebro(96, 286, 190);
+            this.cerebroD = new Cerebro(96, 256, 160);
+        }
+
+        dibujar(ctx) {
+            this.jugadores.forEach(function(jugador) {
+                jugador.dibujar(ctx);
+            });
+        }
+
+        /**
+         *
+         */
+        actualizar(rival, balon, tengoPos, estadoPartido) {
+            if (this.tUltPensa > INTERVALO_PENSAR) {
+                console.log(this.izquierda ? 'Izq' : 'Der', 'Pensando');
+                debugger
+                let entradas = this.percibir(rival, balon, estadoPartido);
+                console.log(entradas);
+                let acciones = this.pensar(entradas, tengoPos);
+                console.log(acciones);
+                this.actuar(acciones);
+                this.tUltPensa = 0;
+            }
+            this.tUltPensa++;
+            this.jugadores.forEach(function(jugador) {
+                jugador.actualizar();
+            });
+        }
+
+        /**
+         * Normaliza la posicion del balon y todos los jugadores en cancha
+         * el marcador, el tiempo, etc
+         * @param {Equipo} rival
+         * @param {Balon} balon
+         * @param estadoPartido
+         * @returns {[]}
+         */
+        percibir(rival, balon, estadoPartido) {
+            let entradas = [];
+            const { golesIzq, golesDer, posesIzq, posesDer, tiempRes } = estadoPartido;
+            if (this.izquierda) {
+                this.jugadores.forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((x - minX) / ancho);
+                    entradas.push((y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push(angulo / DOS_PI);
+                });
+                rival.getJugadores().forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((ancho - x - minX) / ancho);
+                    entradas.push((alto - y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push((angulo + Math.PI) / DOS_PI);
+                });
+                //balon
+                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
+                entradas.push((x - minX) / ancho);
+                entradas.push((y - minY) / alto);
+                entradas.push(vx);
+                entradas.push(vy);
+                entradas.push(vel / maxVel);
+                //esta ganando o perdiendo
+                entradas.push(golesIzq > golesDer ? 1 : 0);
+                //posesion porcentaje
+                entradas.push(posesIzq / (posesIzq + posesDer));
+            } else {
+                this.jugadores.forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((ancho - x - minX) / ancho);
+                    entradas.push((alto - y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push((angulo + Math.PI) / DOS_PI);
+                });
+                rival.getJugadores().forEach(function(jug) {
+                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    entradas.push((x - minX) / ancho);
+                    entradas.push((y - minY) / alto);
+                    entradas.push(vel / maxVel);
+                    entradas.push(angulo / DOS_PI);
+                });
+                //balon
+                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
+                entradas.push((ancho - x - minX) / ancho);
+                entradas.push((alto - y - minY) / alto);
+                entradas.push(vx);
+                entradas.push(vy);
+                entradas.push(vel / maxVel);
+                //esta ganando o perdiendo
+                entradas.push(golesIzq < golesDer ? 1 : 0);
+                //posesion porcentaje
+                entradas.push(posesDer / (posesIzq + posesDer));
+            }
+            //tiempo restante
+            entradas.push((TIEMPO_TOTAL - tiempRes) / TIEMPO_TOTAL);
+            return entradas;
+        }
+
+        getJugadores() {
+            return this.jugadores;
+        }
+
+        selecJugador(offsetX, offsetY) {
+            let distanciaClic = (ancho + alto) / 100;
+            for (let jug of this.jugadores) {
+                const { x, y } = jug.getVals();
+                if (distanciaClic > distancia(offsetX, offsetY, x + minX, y + minY)) {
+                    this.jugMoviendo = jug;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        moverJugador(offsetX, offsetY) {
+            if (this.jugMoviendo) {
+                this.jugMoviendo.setXY(offsetX, offsetY);
+                return true;
+            } else {
+                return false;
+            }
+
+        }
+
+        sueltaJugador() {
+            if (this.jugMoviendo) {
+                this.jugMoviendo = null;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        /**
+         *
+         * @param entradas
+         * @param tengoPos
+         * @returns {any}
+         */
+        pensar(entradas, tengoPos) {
+            if (tengoPos) {
+                return this.cerebroA.pensar(entradas);
+            } else {
+                return this.cerebroD.pensar(entradas);
+            }
+        }
+
+        /**
+         *
+         * @param acciones
+         * @returns {*}
+         */
+        actuar(acciones) {
+            return acciones;
+        }
+    }
+
+    /*
+██████╗  █████╗ ██╗      ██████╗ ███╗   ██╗
+██╔══██╗██╔══██╗██║     ██╔═══██╗████╗  ██║
+██████╔╝███████║██║     ██║   ██║██╔██╗ ██║
+██╔══██╗██╔══██║██║     ██║   ██║██║╚██╗██║
+██████╔╝██║  ██║███████╗╚██████╔╝██║ ╚████║
+╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
+ */
+    class Balon {
+        /**
+         *
+         */
+        constructor() {
+            this.tamano = (ancho + alto) / 500;
+            this.maxVel = this.tamano * 7;
+            this.friccion = 0.0001;
+            this.x = minX + ancho / 2;
+            this.y = minY + alto / 2;
+            this.vx = 0;
+            this.vy = 0;
+            this.vel = 0;
+        }
+
+        /**
+         *
+         * @param ctx
+         */
+        dibujar(ctx) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.closePath();
+        };
+
+        /**
+         *
+         */
+        actualizar() {
+            this.vel = this.vel > this.maxVel ? this.maxVel : (this.vel <= 0.1 ? 0 : this.vel);
+
+            if (this.x + this.vx * this.vel > maxX || this.x + this.vx * this.vel < minX) {
+                this.vx = -this.vx;
+            }
+            if (this.y + this.vy * this.vel > maxY || this.y + this.vy * this.vel < minY) {
+                this.vy = -this.vy;
+            }
+            this.x = this.x + this.vx * this.vel;
+            this.y = this.y + this.vy * this.vel;
+            this.vel = this.vel - this.friccion;
+        };
+
+        /**
+         *
+         * @param nuevoX
+         * @param nuevoY
+         * @param nuevoVelX
+         * @param nuevoVelY
+         * @param nuevoV
+         */
+        setValores(nuevoX, nuevoY, nuevoVelX, nuevoVelY, nuevoV) {
+            this.x = nuevoX || this.x;
+            this.y = nuevoY || this.y;
+            this.vx = nuevoVelX || this.vx;
+            this.vy = nuevoVelY || this.vy;
+            this.vel = nuevoV || this.vel;
+        };
+
+        /**
+         *
+         * @returns {{vx: Balon.getValores.vx, vy: Balon.getValores.vy, maxVel: Balon.getValores.maxVel, x: Balon.getValores.x, y: Balon.getValores.y, vel: Balon.getValores.vel}}
+         */
+        getValores = function() {
+            return {
+                'x': this.x,
+                'y': this.y,
+                'vx': this.vx,
+                'vy': this.vy,
+                'vel': this.vel,
+                'maxVel': this.maxVel
+            };
+        };
+
+    }
+
+    /*
+     ██╗██╗   ██╗ ██████╗  █████╗ ██████╗  ██████╗ ██████╗
+     ██║██║   ██║██╔════╝ ██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
+     ██║██║   ██║██║  ███╗███████║██║  ██║██║   ██║██████╔╝
+██   ██║██║   ██║██║   ██║██╔══██║██║  ██║██║   ██║██╔══██╗
+╚█████╔╝╚██████╔╝╚██████╔╝██║  ██║██████╔╝╚██████╔╝██║  ██║
+ ╚════╝  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
+ */
+    class Jugador {
+        /**
+         *
+         * @param equipo
+         * @param nuevoX
+         * @param nuevoY
+         */
+        constructor(equipo, nuevoX, nuevoY) {
+            this.tamano = (ancho + alto) / 400;
+            this.maxVel = this.tamano * 7;
+            this.esArquero = false;
+            this.color = equipo ? 'blue' : 'red';
+            this.x = nuevoX || 1;
+            this.y = nuevoY || 1;
+            this.vel = 0;
+            this.angulo = equipo ? 0 : Math.PI;//mira a la izquierda o derecha
+            this.izquierda = equipo;
+        };
+
+        /**
+         *
+         * @param ctx
+         */
+        dibujar(ctx) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
+            ctx.strokeStyle = this.esArquero ? 'white' : 'black';
+            ctx.stroke();
+            ctx.closePath();
+        };
+
+        /**
+         *
+         */
+        actualizar() {
+            this.x = this.x + Math.cos(this.angulo) * this.vel;
+            this.y = this.y + Math.sin(this.angulo) * this.vel;
+        };
+
+        /**
+         *
+         */
+        asignaArquero() {
+            this.esArquero = true;
+            this.x = this.izquierda ? minX + this.tamano * 2 : minX + ancho - this.tamano * 2;
+            this.y = minY + alto / 2;
+        };
+
+        /**
+         *
+         * @param offsetX
+         * @param offsetY
+         */
+        setXY(offsetX, offsetY) {
+            this.x = offsetX;
+            this.y = offsetY;
+
+        };
+
+        /**
+         *
+         * @returns {{maxVel: number, x: *, y: number, angulo: number, vel: number}}
+         */
+        getVals() {
+            return {
+                'x': this.x,
+                'y': this.y,
+                'vel': this.vel,
+                'angulo': this.angulo,
+                'maxVel': this.maxVel
+            };
+        };
+
+    }
+
+    /*
      ██████╗███████╗██████╗ ███████╗██████╗ ██████╗  ██████╗
     ██╔════╝██╔════╝██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗
     ██║     █████╗  ██████╔╝█████╗  ██████╔╝██████╔╝██║   ██║
@@ -770,29 +779,31 @@
      ╚═════╝╚══════╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝
     */
     class Cerebro {
-        constructor(e, o, s) {
-            this.nodosEntradas = e;
-            this.nodosOcultas = o;
-            this.nodosSalidas = s;
+
+        constructor(entradas, ocultas, salidas) {
+            this.nodosEntradas = entradas;
+            this.nodosOcultas = ocultas;
+            this.nodosSalidas = salidas;
+            this.modelo = null;
             this.crearModelo();
         }
 
         crearModelo() {
             this.modelo = tf.sequential();
-            /*const ocultas = tf.layers.dense({
+            const ocultas = tf.layers.dense({
                 units: this.nodosOcultas,
                 inputShape: [this.nodosEntradas],
                 activation: 'sigmoid'
             });
 
-            this.model.add(ocultas);
+            this.modelo.add(ocultas);
 
             const salidas = tf.layers.dense({
                 units: this.nodosSalidas,
                 activation: 'sigmoid'
             });
 
-            this.modelo.add(salidas);*/
+            this.modelo.add(salidas);
         }
 
         /**
@@ -802,7 +813,7 @@
          */
         pensar(entradas) {
             const xs = tf.tensor2d([entradas]);
-            const ys = this.modelo.predict2D(xs);
+            const ys = this.modelo.predict(xs);
             return ys.dataSync();
         }
     }
