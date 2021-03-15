@@ -250,11 +250,9 @@
             this.radioCentro = this.bombaAncho / 3;
             this.radioCompleto = DOS_PI;
             this.radioMitad = Math.PI / 2;
-            this.radioAngulo = Math.PI;
             this.porteriaMinY = minY + 4 * alto / 9;
             this.porteriaMaxY = alto / 9;
 
-            this.tiempoAnt = 0;
             this.golesIzq = 0;
             this.golesDer = 0;
             this.tiempRes = 0;
@@ -376,20 +374,18 @@
                 let estadoPartido = {
                     golesIzq: this.golesIzq,
                     golesDer: this.golesDer,
-                    posesIzq: this.posesIzq,
-                    posesDer: this.posesDer,
                     tiempRes: this.tiempRes
                 };
                 this.equipoA.actualizar(this.equipoB, this.balon, this.posesion === POSESION_IZQ, estadoPartido);
                 this.equipoB.actualizar(this.equipoA, this.balon, this.posesion === POSESION_DER, estadoPartido);
             }
+            this.tiempRes++;
         }
 
         /**
-         *
+         * tiempo es un param opcional
          */
-        ciclo(tiempo) {
-            let deltaTiempo = tiempo - this.tiempoAnt;
+        ciclo() {
             this.actualizar();
             this.dibujar();
             requestAnimationFrame(this.ciclo.bind(this));
@@ -440,8 +436,19 @@
                 }
                 this.jugadores.push(jug);
             }
-            this.cerebroA = new Cerebro(96, 286, 190);
-            this.cerebroD = new Cerebro(96, 256, 160);
+            /*
+            Jugador [x,y] * 20(10 propio + 10 rival) +
+            balon [x,y] +
+            ganando [1] +
+            tiempo transcurrido [1]
+            44
+            */
+            /*
+            Ataque
+            11 x
+            */
+            this.cerebroA = new Cerebro(44, 190);
+            this.cerebroD = new Cerebro(44, 160);
         }
 
         dibujar(ctx) {
@@ -456,11 +463,8 @@
         actualizar(rival, balon, tengoPos, estadoPartido) {
             if (this.tUltPensa > INTERVALO_PENSAR) {
                 console.log(this.izquierda ? 'Izq' : 'Der', 'Pensando');
-                debugger
                 let entradas = this.percibir(rival, balon, estadoPartido);
-                console.log(entradas);
                 let acciones = this.pensar(entradas, tengoPos);
-                console.log(acciones);
                 this.actuar(acciones);
                 this.tUltPensa = 0;
             }
@@ -480,59 +484,45 @@
          */
         percibir(rival, balon, estadoPartido) {
             let entradas = [];
-            const { golesIzq, golesDer, posesIzq, posesDer, tiempRes } = estadoPartido;
+            const { golesIzq, golesDer, tiempRes } = estadoPartido;
             if (this.izquierda) {
                 this.jugadores.forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    let { x, y } = jug.getVals();
                     entradas.push((x - minX) / ancho);
                     entradas.push((y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push(angulo / DOS_PI);
                 });
+                entradas.splice(0, 1);//eliminar al arquero
                 rival.getJugadores().forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    let { x, y } = jug.getVals();
                     entradas.push((ancho - x - minX) / ancho);
                     entradas.push((alto - y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push((angulo + Math.PI) / DOS_PI);
                 });
+                entradas.splice(10, 1);//eliminar al arquero
                 //balon
-                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
+                let { x, y } = balon.getValores();
                 entradas.push((x - minX) / ancho);
                 entradas.push((y - minY) / alto);
-                entradas.push(vx);
-                entradas.push(vy);
-                entradas.push(vel / maxVel);
                 //esta ganando o perdiendo
                 entradas.push(golesIzq > golesDer ? 1 : 0);
-                //posesion porcentaje
-                entradas.push(posesIzq / (posesIzq + posesDer));
             } else {
                 this.jugadores.forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    let { x, y } = jug.getVals();
                     entradas.push((ancho - x - minX) / ancho);
                     entradas.push((alto - y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push((angulo + Math.PI) / DOS_PI);
                 });
+                entradas.splice(0, 1);//eliminar al arquero
                 rival.getJugadores().forEach(function(jug) {
-                    let { x, y, vel, angulo, maxVel } = jug.getVals();
+                    let { x, y } = jug.getVals();
                     entradas.push((x - minX) / ancho);
                     entradas.push((y - minY) / alto);
-                    entradas.push(vel / maxVel);
-                    entradas.push(angulo / DOS_PI);
                 });
+                entradas.splice(10, 1);//eliminar al arquero
                 //balon
-                let { x, y, vx, vy, vel, maxVel } = balon.getValores();
+                let { x, y } = balon.getValores();
                 entradas.push((ancho - x - minX) / ancho);
                 entradas.push((alto - y - minY) / alto);
-                entradas.push(vx);
-                entradas.push(vy);
-                entradas.push(vel / maxVel);
                 //esta ganando o perdiendo
                 entradas.push(golesIzq < golesDer ? 1 : 0);
-                //posesion porcentaje
-                entradas.push(posesDer / (posesIzq + posesDer));
             }
             //tiempo restante
             entradas.push((TIEMPO_TOTAL - tiempRes) / TIEMPO_TOTAL);
@@ -599,13 +589,13 @@
     }
 
     /*
-██████╗  █████╗ ██╗      ██████╗ ███╗   ██╗
-██╔══██╗██╔══██╗██║     ██╔═══██╗████╗  ██║
-██████╔╝███████║██║     ██║   ██║██╔██╗ ██║
-██╔══██╗██╔══██║██║     ██║   ██║██║╚██╗██║
-██████╔╝██║  ██║███████╗╚██████╔╝██║ ╚████║
-╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
- */
+    ██████╗  █████╗ ██╗      ██████╗ ███╗   ██╗
+    ██╔══██╗██╔══██╗██║     ██╔═══██╗████╗  ██║
+    ██████╔╝███████║██║     ██║   ██║██╔██╗ ██║
+    ██╔══██╗██╔══██║██║     ██║   ██║██║╚██╗██║
+    ██████╔╝██║  ██║███████╗╚██████╔╝██║ ╚████║
+    ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
+     */
     class Balon {
         /**
          *
@@ -613,11 +603,11 @@
         constructor() {
             this.tamano = (ancho + alto) / 500;
             this.maxVel = this.tamano * 7;
-            this.friccion = 0.0001;
+            this.friccion = 0.01;
             this.x = minX + ancho / 2;
+
             this.y = minY + alto / 2;
-            this.vx = 0;
-            this.vy = 0;
+            this.angulo = Math.random() * DOS_PI;
             this.vel = 0;
         }
 
@@ -630,6 +620,9 @@
             ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
             ctx.fillStyle = 'white';
             ctx.fill();
+            ctx.moveTo(this.x, this.y);    // Move the pen to (30, 50)
+            ctx.lineTo(this.x + Math.cos(this.angulo) * this.tamano, this.y + Math.sin(this.angulo) * this.tamano);  // Draw a line to (150, 100)
+            ctx.stroke();
             ctx.closePath();
         };
 
@@ -637,17 +630,18 @@
          *
          */
         actualizar() {
-            this.vel = this.vel > this.maxVel ? this.maxVel : (this.vel <= 0.1 ? 0 : this.vel);
-
-            if (this.x + this.vx * this.vel > maxX || this.x + this.vx * this.vel < minX) {
-                this.vx = -this.vx;
-            }
-            if (this.y + this.vy * this.vel > maxY || this.y + this.vy * this.vel < minY) {
-                this.vy = -this.vy;
-            }
-            this.x = this.x + this.vx * this.vel;
-            this.y = this.y + this.vy * this.vel;
             this.vel = this.vel - this.friccion;
+            this.vel = this.vel > this.maxVel ? this.maxVel : (this.vel <= 0.1 ? 0 : this.vel);
+            if (this.x < minX || this.x > maxX) {
+                this.angulo = Math.PI - this.angulo;
+            } else if (this.y < minY || this.y > maxY) {
+                this.angulo = DOS_PI - this.angulo;
+            }
+            this.x = this.x + Math.cos(this.angulo) * this.vel;
+            this.y = this.y + Math.sin(this.angulo) * this.vel;
+            if (this.vel === 0) {
+                this.vel = this.maxVel / 10;
+            }
         };
 
         /**
@@ -674,9 +668,8 @@
             return {
                 'x': this.x,
                 'y': this.y,
-                'vx': this.vx,
-                'vy': this.vy,
                 'vel': this.vel,
+                'angulo': this.angulo,
                 'maxVel': this.maxVel
             };
         };
@@ -684,13 +677,13 @@
     }
 
     /*
-     ██╗██╗   ██╗ ██████╗  █████╗ ██████╗  ██████╗ ██████╗
-     ██║██║   ██║██╔════╝ ██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
-     ██║██║   ██║██║  ███╗███████║██║  ██║██║   ██║██████╔╝
-██   ██║██║   ██║██║   ██║██╔══██║██║  ██║██║   ██║██╔══██╗
-╚█████╔╝╚██████╔╝╚██████╔╝██║  ██║██████╔╝╚██████╔╝██║  ██║
- ╚════╝  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
- */
+         ██╗██╗   ██╗ ██████╗  █████╗ ██████╗  ██████╗ ██████╗
+         ██║██║   ██║██╔════╝ ██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
+         ██║██║   ██║██║  ███╗███████║██║  ██║██║   ██║██████╔╝
+    ██   ██║██║   ██║██║   ██║██╔══██║██║  ██║██║   ██║██╔══██╗
+    ╚█████╔╝╚██████╔╝╚██████╔╝██║  ██║██████╔╝╚██████╔╝██║  ██║
+     ╚════╝  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝
+     */
     class Jugador {
         /**
          *
@@ -723,6 +716,7 @@
             ctx.arc(this.x, this.y, this.tamano, 0, DOS_PI);
             ctx.strokeStyle = this.esArquero ? 'white' : 'black';
             ctx.stroke();
+            //ctx.fillText(this.x + '-' + this.y, this.x, this.y + this.tamano * 2);
             ctx.closePath();
         };
 
@@ -780,7 +774,8 @@
     */
     class Cerebro {
 
-        constructor(entradas, ocultas, salidas) {
+        constructor(entradas, salidas) {
+            let ocultas = (entradas + salidas / 2);
             this.nodosEntradas = entradas;
             this.nodosOcultas = ocultas;
             this.nodosSalidas = salidas;
@@ -790,13 +785,21 @@
 
         crearModelo() {
             this.modelo = tf.sequential();
-            const ocultas = tf.layers.dense({
+
+            const ocultaUno = tf.layers.dense({
                 units: this.nodosOcultas,
                 inputShape: [this.nodosEntradas],
                 activation: 'sigmoid'
             });
 
-            this.modelo.add(ocultas);
+            this.modelo.add(ocultaUno);
+
+            const ocultaDos = tf.layers.dense({
+                units: this.nodosOcultas,
+                activation: 'sigmoid'
+            });
+
+            this.modelo.add(ocultaDos);
 
             const salidas = tf.layers.dense({
                 units: this.nodosSalidas,
@@ -967,7 +970,7 @@
                 break;
             case 'Enter':
                 if (estado === ESTADO_ORDENANDO) {
-                    alert('Inicia Juego');
+                    console.log('Inicia Juego');
                     estado = ESTADO_JUGANDO;
                 }
                 break;

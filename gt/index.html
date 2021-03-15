@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <!-- MATERIAL DESIGN -->
+    <link href="https://code.getmdl.io/1.3.0/material.teal-pink.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <meta content="#ffffff" name="theme-color">
+    <link href="favicon-32x32.png" rel="icon" sizes="32x32" type="image/png">
+    <title>Login - Futbola</title>
+    <style>
+
+    </style>
+</head>
+<body>
+<div>
+
+</div>
+<canvas height="3" id="myCanvas" width="4"></canvas>
+<!-- MATERIAL DESIGN -->
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+<!-- Load TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+
+<script>
+    'use strict';
+
+    /*
+    ███╗   ███╗██╗   ██╗███╗   ██╗██████╗  ██████╗
+    ████╗ ████║██║   ██║████╗  ██║██╔══██╗██╔═══██╗
+    ██╔████╔██║██║   ██║██╔██╗ ██║██║  ██║██║   ██║
+    ██║╚██╔╝██║██║   ██║██║╚██╗██║██║  ██║██║   ██║
+    ██║ ╚═╝ ██║╚██████╔╝██║ ╚████║██████╔╝╚██████╔╝
+    ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝  ╚═════╝
+    */
+
+
+    /*
+         ██╗██╗   ██╗███████╗ ██████╗  ██████╗
+         ██║██║   ██║██╔════╝██╔════╝ ██╔═══██╗
+         ██║██║   ██║█████╗  ██║  ███╗██║   ██║
+    ██   ██║██║   ██║██╔══╝  ██║   ██║██║   ██║
+    ╚█████╔╝╚██████╔╝███████╗╚██████╔╝╚██████╔╝
+     ╚════╝  ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝
+     */
+    class Juego {
+
+        constructor(elctx) {
+            this.ctx = elctx;
+
+        }
+
+        ratonClic(offsetX, offsetY) {
+        };
+
+        ratonMueve(offsetX, offsetY) {
+        };
+
+        ratonSuelta() {
+        };
+
+        dibujarCampo(elctx) {
+        }
+
+        dibujar() {
+            //Limpiar
+            this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        }
+
+        actualizar() {
+        }
+
+        ciclo() {
+            this.actualizar();
+            this.dibujar();
+            requestAnimationFrame(this.ciclo.bind(this));
+        }
+
+
+    }
+
+    /*
+    ████████╗███████╗███╗   ███╗██████╗  ██████╗ ██████╗  █████╗ ██╗
+    ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██║
+       ██║   █████╗  ██╔████╔██║██████╔╝██║   ██║██████╔╝███████║██║
+       ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║   ██║██╔══██╗██╔══██║██║
+       ██║   ███████╗██║ ╚═╝ ██║██║     ╚██████╔╝██║  ██║██║  ██║███████╗
+       ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+     */
+
+    /**
+     * Inicia los datos para comenzar la partida
+     */
+    function preparar() {
+        const ancho = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        const alto = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+        document.getElementById('myCanvas');
+        let canvas = document.getElementById('myCanvas');
+        let ctx = canvas.getContext('2d');
+
+        ctx.canvas.width = ancho;
+        ctx.canvas.height = alto;
+
+        let juego = new Juego(ctx);
+        juego.ciclo(1);
+
+        let x = 0;
+        let y = 0;
+
+        let dibujar = function(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.closePath();
+        };
+
+        canvas.addEventListener('mousedown', e => {
+            if (estado === ESTADO_JUGANDO) return;
+            x = e.offsetX;
+            y = e.offsetY;
+            estaMoviRaton = true;
+            switch (estado) {
+                case ESTADO_ENTRENANDO:
+                    break;
+                case ESTADO_ORDENANDO:
+                    juego.ratonClic(e.offsetX, e.offsetY);
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (estado === ESTADO_JUGANDO || !estaMoviRaton) return;
+            switch (estado) {
+                case ESTADO_ENTRENANDO:
+                    dibujar(x, y, e.offsetX, e.offsetY);
+                    x = e.offsetX;
+                    y = e.offsetY;
+                    break;
+                case ESTADO_ORDENANDO:
+                    juego.ratonMueve(e.offsetX, e.offsetY);
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        window.addEventListener('mouseup', e => {
+            estaMoviRaton = false;
+            if (estado === ESTADO_JUGANDO) return;
+            switch (estado) {
+                case ESTADO_ENTRENANDO:
+                    dibujar(x, y, e.offsetX, e.offsetY);
+                    x = 0;
+                    y = 0;
+                    break;
+                case ESTADO_ORDENANDO:
+                    juego.ratonSuelta();
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        probarTF();
+
+    }
+
+    function probarTF() {
+        const model = tf.sequential();
+        model.add(tf.layers.dense({
+            units: 1,
+            inputShape: [1]
+        }));
+
+        // Prepare the model for training: Specify the loss and the optimizer.
+        model.compile({
+            loss: 'meanSquaredError',
+            optimizer: 'sgd'
+        });
+
+        // Generate some synthetic data for training.
+        const xs = tf.tensor2d([1, 2, 3, 4], [4, 1]);
+        const ys = tf.tensor2d([1, 3, 5, 7], [4, 1]);
+
+        // Train the model using the data.
+        model.fit(xs, ys).then(() => {
+            // Use the model to do inference on a data point the model hasn't seen before:
+            // Open the browser devtools to see the output
+            model.predict(tf.tensor2d([5], [1, 1])).print();
+        });
+    }
+
+    window.addEventListener('keyup', function(event) {
+        if (event.key !== undefined) {
+            tecleo(event.key, 'Key');
+        } else if (event.keyIdentifier !== undefined) {
+            tecleo(event.keyIdentifier, 'keyIdentifier');
+        } else if (event.keyCode !== undefined) {
+            tecleo(event.keyCode, 'keyCode');
+        }
+    }, false);
+
+    function tecleo(evento, tipo) {
+        switch (evento) {
+            case 'ArrowUp':
+                break;
+            case 'ArrowDown':
+                break;
+            case 'Enter':
+                if (estado === ESTADO_ORDENANDO) {
+                    console.log('Inicia Juego');
+                    estado = ESTADO_JUGANDO;
+                }
+                break;
+            case 'a':
+                entrenar();
+                break;
+            default:
+                break;
+        }
+        console.log(evento, tipo);
+    }
+
+    function abreMenu(idElem) {
+        document.getElementById('menu-principal').classList.add('oculto');
+        let elemento = document.getElementById(idElem);
+        elemento.classList.remove('oculto');
+    }
+
+    function vuelveMenu(idElem) {
+        let elemento = document.getElementById(idElem);
+        elemento.classList.add('oculto');
+        document.getElementById('menu-principal').classList.remove('oculto');
+    }
+
+    /**
+     * TEPORAL
+     */
+    setTimeout(preparar, 100);
+</script>
+</body>
+</html>
