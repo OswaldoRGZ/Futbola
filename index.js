@@ -37,6 +37,7 @@ if (!config.dev) {
 appExpress.use(session(sess));
 appExpress.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 appExpress.use('/cdn', express.static(ruta.join(__dirname, '/cdn')));
+appExpress.use('/dist', express.static(ruta.join(__dirname, '/dist')));
 appExpress.use(morgan('combined'));
 
 /**
@@ -46,7 +47,10 @@ appExpress.get('/', function(req, respuestas) {
     if (laSesion.estaLogeado(req)) {
         respuestas.redirect(HttpStatus.MOVED_TEMPORARILY, '/admins-tablero');
     } else {
-        vista.traerVista(respuestas, 'chao');
+        /*
+        No hay sesion iniciada ni juego corriendo ni nada, enviar al inicio
+         */
+        vista.traerVista(respuestas, 'login');
     }
 });
 
@@ -105,3 +109,29 @@ appExpress.use((peticion, respuesta) => {
 appExpress.listen(config.puerto, function() {
     console.log('Escuchando servidor %s', config.puerto);
 });
+/*
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+const fireConf = {
+    apiKey: 'AIzaSyBEbhe1vS6dhELvmKXnRzTRU7zcwlpd-lc',
+    authDomain: 'omf-firebase-servicios.firebaseapp.com',
+    projectId: 'omf-firebase-servicios',
+    storageBucket: 'omf-firebase-servicios.appspot.com',
+    messagingSenderId: '101179066732',
+    appId: '1:101179066732:web:5031d22cf2cafdf223cb49'
+};
+const fireApp = initializeApp(fireConf);
+const fireAut = getAuth(fireApp);
+const fireDB = getFirestore(fireApp);
+
+onAuthStateChanged(fireAut, usuario => {
+    if (usuario != null) {
+        console.log('Ya ta logeado');
+    } else {
+        console.log('Le falta logearse');
+    }
+});
+
+ */

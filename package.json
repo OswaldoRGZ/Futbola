@@ -1,13 +1,15 @@
 {
-  "name": "softerra",
+  "name": "futbola",
   "version": "0.0.1",
   "main": "index.js",
   "license": "UNLICENSED",
-  "description": "soft terra",
+  "description": "Evoluciona la cosa",
   "scripts": {
     "devWin": "set DEBUG=app:* & nodemon index.js",
     "devLin": "DEBUG=app:* nodemon index.js",
-    "start": "NODE_ENV=production node index.js"
+    "start": "NODE_ENV=production node index.js",
+    "watch": "webpack --watch",
+    "build": "webpack --mode production"
   },
   "repository": {
     "type": "git",
@@ -22,13 +24,15 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-session": "^1.17.1",
+    "firebase": "^9.0.1",
     "http-status-codes": "^2.0.0",
     "morgan": "^1.10.0",
     "pg": "^8.3.3",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.4.1"
   },
   "engines": {
-    "node": "0.13.x"
+    "node": "v16.6.2",
+    "npm": "7.21.1"
   },
   "devDependencies": {
     "eslint": "^7.8.1",
@@ -37,7 +41,9 @@
     "husky": "^4.2.5",
     "lint-staged": "^10.3.0",
     "nodemon": "^2.0.4",
-    "prettier": "^2.1.1"
+    "prettier": "^2.1.1",
+    "webpack": "^5.51.1",
+    "webpack-cli": "^4.8.0"
   },
   "husky": {
     "hooks": {

@@ -1,2 +1,7 @@
 estaticos/*
 vendors/*
+dist/*
+src/*
+vista/*
+node_modules/*
+
