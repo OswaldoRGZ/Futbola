@@ -24,6 +24,8 @@ import {
 /**
  * Verificar si el usuario posee equipo y cargar en local storage toda esa info
  * si no tiene equipo crear uno de manera predeterminada usando su nombre
+ *
+ * login -> setup -> dashboard
  */
 function Setup() {
     escribeMensaje('Validating User');
@@ -37,17 +39,18 @@ function Setup() {
     });
 
     /**
-     * Primero checkear que el usuario ste logeado
+     * Primero checar que el usuario ste logeado
      */
     onAuthStateChanged(fireAut, usuario => {
         if (usuario === null) {
             escribeMensaje('User not logged in');
             setTimeout(() => {
-                location.replace('/login');
+                //location.replace('/login');
+                console.log('location.replace(\'/login\')');
             }, 1);
         } else {
-            hacerSetup();
-            escribeMensaje('Setup Terminado');
+            escribeMensaje('Starting setup');
+            escribeMensaje('Setup finished');
         }
     });
 
@@ -64,10 +67,11 @@ function Setup() {
         equipo.presupuesto = 0;
         set(ref(database, constantes.RUTA_EQUIPOS + userId), equipo).then(() => {
             escribeMensaje('Team created successfully!');
-            window.location.replace('/dashboard');
         }).catch((error) => {
             escribeMensaje('Team creation failed...');
         });
+
+        //window.location.replace('/dashboard');
     }
 
     /**
@@ -89,21 +93,24 @@ function Setup() {
      * Se conecta a la base de datos y obtiene el arbol con toda la info, si hace falta algo toca reconstruir el arbol
      */
     function hacerSetup() {
+        if (!fireAut || !fireAut.currentUser) {
+            setTimeout(hacerSetup, 100);
+            return;
+        }
         escribeMensaje('Validating Database');
         const database = getDatabase(fireApp);
         const userId = fireAut.currentUser.uid;
         /*
-        PENDIENTE obtener de local storage
+        valida la info almacenada en database
          */
         get(ref(database, constantes.RUTA_EQUIPOS + userId)).then((snapshot) => {
             if (snapshot.val() === null) {
-                // Pare que no existe el arbol, vamos a crearlo.
-                setNuevoEquipo(database, userId);
+                // Parece que no existe el arbol, vamos a crearlo.
+                escribeMensaje('No team found, creating...');
             } else {
                 const esValido = validarEquipo(snapshot.val());
                 if (!esValido) {
                     escribeMensaje('Team was no valid, recreating...');
-                    setNuevoEquipo(database, userId);
                 }
             }
         }).catch(() => {
@@ -112,6 +119,27 @@ function Setup() {
             PENDIENTE reportar error al backend
              */
         });
+
+        fireAut.currentUser.getIdToken(true).then(function(idToken) {
+            let cuerpo = { firebaseToken: idToken };
+            // Avisando al back que hicimos login ya
+            fetch('login/validaToken', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(cuerpo)
+            }).then(r => r.json())
+                .then((objson) => {
+                    console.log(objson);
+                    escribeMensaje('Json parseado bien');
+                }).catch((yuca) => {
+                escribeMensaje('Error parceando json');
+            });
+        }).catch(function(error) {
+            escribeMensaje('Pues parece que no se pudo sacar el token');
+        });
+
     }
 
     /**
@@ -122,6 +150,7 @@ function Setup() {
         document.getElementById('setup-info').append(texto + '\n');
     }
 
+    hacerSetup();
 
 }
 

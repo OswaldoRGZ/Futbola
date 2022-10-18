@@ -41,12 +41,21 @@ function Login() {
             alert('No usuario correcto');
             return;
         }
+        (document.querySelectorAll('[data-omf-campologin]')).forEach((elem) => {
+            elem.classList.remove('is-invalid');
+        });
         mostrarCargando(true);
         signInWithEmailAndPassword(fireAut, usuario, clave)
             .then((userCredential) => {
                 mostrarCargando(false);
             })
             .catch((error) => {
+                (document.querySelectorAll('[data-omf-msjlogin]')).forEach((elem) => {
+                    elem.innerHTML = 'Wrong user or password';
+                });
+                (document.querySelectorAll('[data-omf-campologin]')).forEach((elem) => {
+                    elem.classList.add('is-invalid');
+                });
                 mostrarCargando(false);
             });
     }
@@ -59,37 +68,6 @@ function Login() {
     function esEmailValido(email) {
         let re = /\S+@\S+\.\S+/;
         return re.test(email);
-    }
-
-
-    /**
-     * Llamado a FireBase para crear usuario.
-     * @param email
-     * @param clave
-     * @param ok
-     * @param yuca
-     */
-    function crearUsuario(email, clave, ok, yuca) {
-        if (!esEmailValido(email)) {
-            alert('No usuario correcto');
-            return;
-        }
-        mostrarCargando(true);
-        createUserWithEmailAndPassword(fireAut, email, clave)
-            .then((userCredential) => {
-                // correcto
-                const user = userCredential.user;
-                if (ok) {
-                    ok(user);
-                }
-            })
-            .catch((error) => {
-                const errorCode = error.code;
-                const errorMessage = error.message;
-                if (yuca) {
-                    yuca(errorCode, errorMessage);
-                }
-            });
     }
 
     /**
@@ -115,6 +93,28 @@ function Login() {
     }
 
     /**
+     *
+     * @param msjError
+     */
+    function mostrarError(msjError) {
+        if (msjError === '') {
+            (document.querySelectorAll('[data-omf-campoclave]')).forEach((item) => {
+                item.classList.remove('is-invalid');
+            });
+            (document.querySelectorAll('[data-omf-msjclave]')).forEach((item) => {
+                item.innerHTML = '';
+            });
+        } else {
+            (document.querySelectorAll('[data-omf-campoclave]')).forEach((item) => {
+                item.classList.add('is-invalid');
+            });
+            (document.querySelectorAll('[data-omf-msjclave]')).forEach((item) => {
+                item.innerHTML = msjError.replace('Firebase: ', '');
+            });
+        }
+    }
+
+    /**
      * Asociando onkeyup para los campos que contienen al usuario
      */
     (document.querySelectorAll('#login-inputusr,#login-inputnombre')).forEach((elemento) => {
@@ -130,25 +130,32 @@ function Login() {
      */
     document.querySelector('#login-formCrear').onsubmit = (evento) => {
         evento.preventDefault();
+        mostrarError('');
         let formulario = document.querySelector('#login-formCrear');
         let losDatos = new FormData(formulario);
-        const [usuario, email, clave, reclave] = [losDatos.get('Usuario[usuario]'), losDatos.get('Usuario[email]'), losDatos.get('Usuario[clave]'), losDatos.get('Usuario[re-clave]')];
+        const [usuario, clave, reclave] = [losDatos.get('Usuario[usuario]'), losDatos.get('Usuario[clave]'), losDatos.get('Usuario[re-clave]')];
         if (clave !== reclave) {
-            alert('Las claves no coinciden');
+            mostrarError('Password missmatch');
             return false;
         }
         let usrUnico = usuario + '@gmail.com';//agregamos para tener usuarios unicos y validos para google
-        crearUsuario(usrUnico, clave, (usrCreado) => {
-            alert('Creado');
-            mostrarCargando(false);
-        }, (errorCode, errorMessage) => {
-            if (errorCode === 'auth/invalid-email') {
-                alert('Nombre de usuario no permitido');
-            } else {
-                alert(errorMessage);
-            }
-            mostrarCargando(false);
-        });
+        if (!esEmailValido(usrUnico)) {
+            alert('No usuario correcto');
+            return false;
+        }
+        mostrarCargando(true);
+        createUserWithEmailAndPassword(fireAut, usrUnico, clave)
+            .then((userCredential) => {
+                document.location.replace('setup');
+            })
+            .catch((error) => {
+                if (error.code === 'auth/invalid-email') {
+                    mostrarError('Username already in use');
+                } else {
+                    mostrarError(error.message);
+                }
+                mostrarCargando(false);
+            });
         return false;
     };
 
@@ -165,18 +172,21 @@ function Login() {
         hacerLogin(usuario + '@gmail.com', clave);
         return false;
     };
+
     /**
      *
      */
     onAuthStateChanged(fireAut, usuario => {
-        if (usuario != null) {
+        if (usuario == null) {
+            console.table('Hace falta loguearse');
+        } else {
             usuario.providerData.forEach((profile) => {
                 if (profile.uid) {
-                    location.replace('/setup');
+                    document.getElementById('login-divyalogeado').classList.remove('hidden');
+                    document.getElementById('login-spanletra').innerHTML = profile.email.charAt(0).toUpperCase() || 'XD';
+                    document.getElementById('login-spanalias').innerHTML = profile.email.split('@')[0];
                 }
             });
-        } else {
-            console.log('Le falta logearse');
         }
     });
 

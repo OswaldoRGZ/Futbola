@@ -1,11 +1,12 @@
 /**
  *
  */
-const db = require("../db");
-const bcrypt = require("bcryptjs");
-const HttpStatus = require("http-status-codes").StatusCodes;
-const laSesion = require("../sesion");
-const modelo = require("../modelos/modelo");
+const db = require('../db');
+const bcrypt = require('bcryptjs');
+const HttpStatus = require('http-status-codes').StatusCodes;
+const laSesion = require('../sesion');
+const modelo = require('../modelos/modelo');
+const { getAuth } = require('firebase-admin/auth');
 
 /**
  *
@@ -18,20 +19,20 @@ module.exports = {
      * @param respuesta
      */
     nuevo: (peticion, respuesta) => {
-        const Usuario = require("../modelos/usuario");
+        const Usuario = require('../modelos/usuario');
         /*
         Carga y valida el usuario, hay campos que son requeridos, la clave es asignada temporalmente hasta que se active la cuenta
          */
         let elusuario = new Usuario(peticion.body);
         if (!elusuario.datos.nombres || !elusuario.datos.apellidos || !elusuario.datos.correo) {
-            respuesta.writeHead(HttpStatus.BAD_REQUEST, { "Connection": "close" }).end();
+            respuesta.writeHead(HttpStatus.BAD_REQUEST, { 'Connection': 'close' }).end();
             return;
         }
         /*
         Correo invalido
          */
         if (!modelo.esCorreoValido(elusuario.datos.correo)) {
-            respuesta.writeHead(HttpStatus.NOT_ACCEPTABLE, { "Connection": "close" }).end();
+            respuesta.writeHead(HttpStatus.NOT_ACCEPTABLE, { 'Connection': 'close' }).end();
             return;
         }
         //La clave temporalmente es el correo hasta que se active la cuenta
@@ -43,40 +44,40 @@ module.exports = {
         db.insert(elusuario, (yuca) => {
             if (yuca) {
                 if (yuca.code === db.constErrDuplicado) {
-                    respuesta.writeHead(HttpStatus.FORBIDDEN, { "Connection": "close" }).end();
+                    respuesta.writeHead(HttpStatus.FORBIDDEN, { 'Connection': 'close' }).end();
                 } else {
-                    respuesta.writeHead(HttpStatus.INTERNAL_SERVER_ERROR, { "Connection": "close" }).end();
+                    respuesta.writeHead(HttpStatus.INTERNAL_SERVER_ERROR, { 'Connection': 'close' }).end();
                 }
             } else {
                 /*
                  Si ok BD, enviar correo con activacion de cuenta y avisar que ok
                  */
-                const sgMail = require("@sendgrid/mail");
+                const sgMail = require('@sendgrid/mail');
                 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
                 const msg = {
                     to: elusuario.datos.correo,
-                    from: "no-reply@softerra.co", // Change to your verified sender
-                    subject: "Activar cuenta en AR2",
+                    from: 'no-reply@softerra.co', // Change to your verified sender
+                    subject: 'Activar cuenta en AR2',
                     text: `Hola `,
-                    html: "<strong>and easy to do anywhere, even with Node.js</strong>"
+                    html: '<strong>and easy to do anywhere, even with Node.js</strong>'
                 };
 
-                respuesta.writeHead(HttpStatus.CREATED, { "Connection": "close" }).end();
+                respuesta.writeHead(HttpStatus.CREATED, { 'Connection': 'close' }).end();
 
                 if (Math.random() > 0) {
                     return;
                 }
                 sgMail
-                  .send(msg)
-                  .then(() => {
-                      console.log("Email sent");
-                      respuesta.writeHead(HttpStatus.OK, { "Connection": "close" }).end();
-                  })
-                  .catch((yucaSendgrid) => {
-                      console.error(yucaSendgrid);
-                      respuesta.writeHead(HttpStatus.INTERNAL_SERVER_ERROR, { "Connection": "close" }).end();
-                  });
+                    .send(msg)
+                    .then(() => {
+                        console.log('Email sent');
+                        respuesta.writeHead(HttpStatus.OK, { 'Connection': 'close' }).end();
+                    })
+                    .catch((yucaSendgrid) => {
+                        console.error(yucaSendgrid);
+                        respuesta.writeHead(HttpStatus.INTERNAL_SERVER_ERROR, { 'Connection': 'close' }).end();
+                    });
 
             }
 
@@ -89,11 +90,11 @@ module.exports = {
      * @param respuesta
      */
     entrar: (peticion, respuesta) => {
-        const Usuario = require("../modelos/usuario");
+        const Usuario = require('../modelos/usuario');
         let usrForm = new Usuario(peticion.body);
 
         if (!usrForm.datos.correo || !usrForm.datos.clave) {
-            respuesta.writeHead(HttpStatus.BAD_REQUEST, { "Connection": "close" }).end();
+            respuesta.writeHead(HttpStatus.BAD_REQUEST, { 'Connection': 'close' }).end();
             return;
         }
 
@@ -103,7 +104,7 @@ module.exports = {
 
         db.select(selUsuario, (yuca, datos) => {
             if (yuca) {
-                respuesta.writeHead(HttpStatus.INTERNAL_SERVER_ERROR, { "Connection": "close" }).end();
+                respuesta.writeHead(HttpStatus.INTERNAL_SERVER_ERROR, { 'Connection': 'close' }).end();
             } else {
                 //Hacer hash a la clave con salt de 10
                 if (datos && datos.rowCount) {
@@ -117,14 +118,14 @@ module.exports = {
                     if (verified) {
                         //Clave correcta
                         laSesion.hacerLogin(peticion);
-                        respuesta.writeHead(HttpStatus.ACCEPTED, { "Connection": "close" }).end();
+                        respuesta.writeHead(HttpStatus.ACCEPTED, { 'Connection': 'close' }).end();
                     } else {
                         //Clave incorrecta
-                        respuesta.writeHead(HttpStatus.UNAUTHORIZED, { "Connection": "close" }).end();
+                        respuesta.writeHead(HttpStatus.UNAUTHORIZED, { 'Connection': 'close' }).end();
                     }
                 } else {
                     //No existe el usuario
-                    respuesta.writeHead(HttpStatus.NOT_FOUND, { "Connection": "close" }).end();
+                    respuesta.writeHead(HttpStatus.NOT_FOUND, { 'Connection': 'close' }).end();
                 }
             }
         });
@@ -135,7 +136,7 @@ module.exports = {
      * @param respuesta
      */
     movido: (peticion, respuesta) => {
-        db.query("SELECT * FROM usuarios_claves WHERE id_usuarios_claves = $1", [parseInt(peticion.params.id)], (err, res) => {
+        db.query('SELECT * FROM usuarios_claves WHERE id_usuarios_claves = $1', [parseInt(peticion.params.id)], (err, res) => {
             if (res) {
                 respuesta.json(res.rows);
             } else {
@@ -150,7 +151,7 @@ module.exports = {
      */
     usuarios: (peticion, respuesta) => {
         let usuario = peticion.body.usuario || null;
-        db.query("SELECT * FROM usuarios_claves WHERE usuario = $1", [usuario], (err, respuestaBD) => {
+        db.query('SELECT * FROM usuarios_claves WHERE usuario = $1', [usuario], (err, respuestaBD) => {
             if (respuestaBD) {
                 respuesta.json(respuestaBD.rows);
             } else {
@@ -165,21 +166,28 @@ module.exports = {
      */
     salir: (peticion, respuesta) => {
         laSesion.cerrarSesionAgente(peticion);
-        respuesta.redirect(HttpStatus.MOVED_TEMPORARILY, "/");
+        respuesta.redirect(HttpStatus.MOVED_TEMPORARILY, '/');
+    },
+
+    /**
+     * Valida el Token Firebase para iniciar sesion de esta forma
+     * @param peticion
+     * @param respuesta
+     */
+    validaToken: (peticion, respuesta) => {
+        console.log('Validando Token...');
+        let idToken = peticion.body.firebaseToken;
+        getAuth()
+            .verifyIdToken(idToken)
+            .then((decodedToken) => {
+                console.log('Bien.');
+                console.log(decodedToken.uid);
+                respuesta.json('ok');
+            })
+            .catch((error) => {
+                console.error('Pailas.');
+                console.log(error);
+                respuesta.json('ko');
+            });
     }
 };
-
-/*
-            let busboy = new Busboy({headers: req.headers});
-
-            busboy.on('field', function (fieldname, val, fieldnameTruncated, valTruncated) {
-                console.log(fieldname, val, fieldnameTruncated, valTruncated);
-            });
-
-            busboy.on('finish', function () {
-                res.writeHead(HttpStatus.OK, {'Connection': 'close'});
-                res.end('OK ' + req.url);
-            });
-
-            return req.pipe(busboy);
- */

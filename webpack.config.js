@@ -7,7 +7,8 @@ module.exports = {
         login: './src/login.js',
         dashboard: './src/dashboard.js',
         config: './src/config.js',
-        setup: './src/setup.js'
+        setup: './src/setup.js',
+        signout: './src/signout.js'
     },
     output: {
         path: path.resolve(__dirname, 'dist'),
