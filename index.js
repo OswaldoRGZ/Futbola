@@ -6,7 +6,6 @@
  * LIBRERIAS
  */
 const express = require('express');
-const session = require('express-session');
 const compresion = require('compression');
 const ruta = require('path');
 const vista = require('./vista');
@@ -37,7 +36,6 @@ if (!config.dev) {
  */
 appExpress.use(express.json());
 appExpress.use(compresion());
-appExpress.use(session(sess));
 appExpress.use('/cdn', express.static(ruta.join(__dirname, '/cdn')));
 appExpress.use('/dist', express.static(ruta.join(__dirname, '/dist')));
 appExpress.use(morgan('combined'));
